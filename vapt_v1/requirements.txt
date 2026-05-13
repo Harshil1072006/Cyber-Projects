@@ -1,0 +1,21 @@
+# Core Framework
+fastapi>=0.115.0
+uvicorn[standard]>=0.34.0
+python-multipart>=0.0.20
+
+# Database
+sqlalchemy>=2.0.38
+aiosqlite>=0.21.0
+
+# File Processing
+python-magic-bin>=0.4.14
+
+# AI Engine (requires C++ build tools on Windows)
+# Install separately: pip install llama-cpp-python --prefer-binary
+# llama-cpp-python>=0.3.0
+
+# HTTP Client (for online scanning features)
+httpx>=0.28.0
+
+# CORS & Utility
+pydantic>=2.11.0

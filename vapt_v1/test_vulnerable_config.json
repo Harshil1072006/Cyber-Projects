@@ -1,0 +1,14 @@
+{
+  "project": "VulnerableTestApp",
+  "version": "1.0.0",
+  "docker_build": "FROM ubuntu:14.04\nUSER root\nENV MYSQL_PASSWORD=root123\nCMD bash",
+  "dependencies": {
+    "lodash": "4.17.4",
+    "axios": "0.18.0",
+    "react": "16.0.0"
+  },
+  "aws_keys": [
+    "AKIAIOSFODNN7EXAMPLE",
+    "wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"
+  ]
+}

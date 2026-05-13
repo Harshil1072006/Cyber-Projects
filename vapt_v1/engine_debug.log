@@ -1,0 +1,40 @@
+
+--- Scan 18 Pipeline Started ---
+Source Upload Path: C:\Cyber Project\vapt_v1\uploads\test_vulnerable_files.zip
+Extracted/Target Path (Resolved): C:\Cyber Project\vapt_v1\workdir\18
+Orchestrator resolved target to: C:\Cyber Project\vapt_v1\workdir\18
+Directory contains 2 files/folders.
+Final Findings Count: 8
+Running AI Analysis...
+Scan 18 Pipeline Completed.
+
+--- Scan 19 Pipeline Started ---
+Source Upload Path: C:\Cyber Project\vapt_v1\uploads\test_vulnerable_config.json
+Extracted/Target Path (Resolved): C:\Cyber Project\vapt_v1\workdir\19\test_vulnerable_config.json
+Orchestrator resolved target to: C:\Cyber Project\vapt_v1\workdir\19\test_vulnerable_config.json
+Final Findings Count: 2
+Running AI Analysis...
+Scan 19 Pipeline Completed.
+
+--- Scan 20 Pipeline Started ---
+Source Upload Path: C:\Cyber Project\vapt_v1\uploads\test_vulnerable_files.zip
+Extracted/Target Path (Resolved): C:\Cyber Project\vapt_v1\workdir\20
+Orchestrator resolved target to: C:\Cyber Project\vapt_v1\workdir\20
+Directory contains 2 files/folders.
+Final Findings Count: 8
+Running AI Analysis...
+
+--- Scan 21 Pipeline Started (mode: offline, ai: online) ---
+Source Upload Path: C:\Cyber Project\vapt_v1\uploads\meesho.html
+Extracted/Target Path: C:\Cyber Project\vapt_v1\workdir\21\meesho.html
+Orchestrator resolved target to: C:\Cyber Project\vapt_v1\workdir\21\meesho.html (mode: offline)
+Findings Count: 1
+Running AI Analysis (mode: online)...
+Scan 21 Pipeline Completed.
+
+--- URL Scan 22 Started (ai: online) ---
+Target URL: https://www.meesho.com/
+Orchestrator resolved target to: C:\Cyber Project\vapt_v1\https:\www.meesho.com (mode: online)
+URL Scan Findings: 0
+Running AI Analysis on URL scan (mode: online)...
+URL Scan 22 Completed.
