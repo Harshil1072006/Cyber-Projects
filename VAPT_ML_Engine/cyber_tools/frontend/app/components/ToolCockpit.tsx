@@ -15,6 +15,19 @@ function buildDefaults(controls: ToolControl[]): Record<string, unknown> {
   return d;
 }
 
+/** Tools that require a full URL with http:// prefix */
+const WEB_TOOLS = ['gobuster', 'httpx', 'nuclei'];
+
+/** Returns the effective target that will be sent to the backend */
+function resolveTarget(toolId: string, raw: string): string {
+  const t = raw.trim();
+  if (!t) return '';
+  if (WEB_TOOLS.includes(toolId) && !/^https?:\/\//i.test(t)) {
+    return 'http://' + t;
+  }
+  return t;
+}
+
 export default function ToolCockpit({ tool, onScanLaunched }: Props) {
   const [target, setTarget] = useState('');
   const [options, setOptions] = useState<Record<string, unknown>>(() => buildDefaults(tool.controls));
@@ -141,7 +154,7 @@ export default function ToolCockpit({ tool, onScanLaunched }: Props) {
       <div style={{ marginBottom: 20 }}>
         <div className="label">Target (IP / URL / Domain)</div>
         <div style={{ display: 'flex', gap: 10 }}>
-          <input className="input" placeholder="e.g. 192.168.1.1 or https://target.com"
+          <input className="input" placeholder="e.g. google.com or 192.168.1.1 or https://target.com"
             value={target} onChange={e => setTarget(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && launch()}
             style={{ fontFamily: 'JetBrains Mono, monospace' }} />
@@ -149,6 +162,12 @@ export default function ToolCockpit({ tool, onScanLaunched }: Props) {
             {running ? <span className="spinner" /> : '▶ Run'}
           </button>
         </div>
+        {/* Show resolved target for web tools so user knows http:// will be added */}
+        {target.trim() && WEB_TOOLS.includes(tool.id) && !/^https?:\/\//i.test(target.trim()) && (
+          <div style={{ marginTop: 6, fontSize: '0.73rem', color: 'var(--cyan)', fontFamily: 'JetBrains Mono, monospace', opacity: 0.85 }}>
+            ℹ️ Will be sent as: <strong>http://{target.trim()}</strong>
+          </div>
+        )}
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 24 }}>

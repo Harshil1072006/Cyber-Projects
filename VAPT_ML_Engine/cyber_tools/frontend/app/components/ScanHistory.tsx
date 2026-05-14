@@ -2,6 +2,16 @@
 import { useState } from 'react';
 import { Scan, Finding, api } from '../lib/api';
 
+// Suggestion shape returned by the backend correlator
+interface Suggestion {
+  rule_id: string;
+  description: string;
+  target: string;
+  tool: string;
+  auto_options: Record<string, unknown>;
+  triggered_by?: Record<string, unknown>;
+}
+
 const SEV_ORDER: Record<string, number> = { critical: 0, high: 1, medium: 2, low: 3, info: 4 };
 
 interface Props {
@@ -132,12 +142,36 @@ export default function ScanHistory({ scans, onRefresh, onSelectScan, selectedSc
             {/* correlations */}
             {selectedScanDetail.suggestions && selectedScanDetail.suggestions.length > 0 && (
               <div style={{ padding: '12px 20px', borderTop: '1px solid var(--border)', background: 'rgba(99,102,241,0.04)' }}>
-                <div className="label" style={{ marginBottom: 8, color: 'var(--accent)' }}>🔗 Correlation Engine Suggestions</div>
-                {selectedScanDetail.suggestions.map((s, i) => (
-                  <div key={i} style={{ fontSize: '0.78rem', color: 'var(--text-secondary)', padding: '4px 0', borderBottom: '1px solid var(--border)' }}>
-                    ▸ {s}
-                  </div>
-                ))}
+                <div className="label" style={{ marginBottom: 10, color: 'var(--accent)' }}>🔗 Correlation Engine Suggestions</div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {(selectedScanDetail.suggestions as unknown as Suggestion[]).map((s, i) => (
+                    <div key={i} style={{
+                      display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12,
+                      padding: '8px 12px', borderRadius: 8,
+                      background: 'rgba(99,102,241,0.07)', border: '1px solid rgba(99,102,241,0.2)',
+                    }}>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-primary)', marginBottom: 2 }}>
+                          ▸ {s.description}
+                        </div>
+                        <div style={{ fontSize: '0.7rem', fontFamily: 'JetBrains Mono, monospace', color: 'var(--cyan)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {s.tool} → {s.target}
+                        </div>
+                      </div>
+                      <button
+                        className="btn btn-primary btn-sm"
+                        style={{ flexShrink: 0, fontSize: '0.7rem', padding: '4px 10px' }}
+                        onClick={async () => {
+                          try {
+                            await api.launch(s.target, s.tool, s.auto_options);
+                          } catch { /* ignore */ }
+                        }}
+                      >
+                        ▶ Run {s.tool}
+                      </button>
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
 

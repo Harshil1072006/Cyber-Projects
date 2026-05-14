@@ -3,6 +3,20 @@ from typing import Any
 from backend.plugins.base_plugin import ToolPlugin
 
 
+def normalize_target(target: str, force_http: bool = False) -> str:
+    """
+    Normalizes a target for web-based tools.
+    - Strips whitespace
+    - If target looks like a plain domain/IP (no scheme), adds 'http://'
+    This ensures tools like gobuster, httpx, nuclei work with bare domains like 'google.com'.
+    """
+    target = target.strip()
+    if force_http and not re.match(r'^https?://', target):
+        # Could be 192.168.1.1, google.com, example.com:8080, etc.
+        target = 'http://' + target
+    return target
+
+
 class NmapPlugin(ToolPlugin):
     name = "nmap"
     description = "Port scanner and service/OS detection"
@@ -19,6 +33,8 @@ class NmapPlugin(ToolPlugin):
         "vuln_scripts": "--script=vuln",
         "http_enum": "--script=http-enum",
         "smb_scripts": "--script=smb-enum-shares,smb-enum-users",
+        "fast_mode": "-F",        # Top 100 ports instead of 1000 — much faster
+        "open_only": "--open",    # Only show open ports, skip filtered/closed noise
     }
 
     TIMING_MAP = {1: "-T1", 2: "-T2", 3: "-T3", 4: "-T4", 5: "-T5"}
@@ -28,12 +44,16 @@ class NmapPlugin(ToolPlugin):
         # Timing
         timing = options.get("timing", 4)
         cmd.append(self.TIMING_MAP.get(timing, "-T4"))
+        # Minimum packet rate for faster scans (e.g. 1000 pkts/sec)
+        min_rate = options.get("min_rate")
+        if min_rate:
+            cmd.extend(["--min-rate", str(min_rate)])
         # Boolean flags
         for key, flag in self.FLAG_MAP.items():
             if options.get(key):
                 cmd.append(flag)
-        # Custom ports
-        if options.get("ports") and not options.get("all_ports"):
+        # Custom ports (skip if fast_mode or all_ports already set)
+        if options.get("ports") and not options.get("all_ports") and not options.get("fast_mode"):
             cmd.extend(["-p", options["ports"]])
         # Output format: always use greppable output for easy parsing
         cmd.extend(["-oG", "-"])
@@ -98,6 +118,9 @@ class GobusterPlugin(ToolPlugin):
     def build_command(self, target: str, options: dict) -> list[str]:
         mode = options.get("mode", "dir")
         cmd = ["gobuster", mode]
+        # Gobuster requires http:// or https:// prefix for dir/vhost mode
+        if mode in ("dir", "vhost"):
+            target = normalize_target(target, force_http=True)
         cmd.extend(["-u", target])
         wordlist = options.get("wordlist", "/usr/share/wordlists/dirb/common.txt")
         cmd.extend(["-w", wordlist])
@@ -198,6 +221,8 @@ class NucleiPlugin(ToolPlugin):
     }
 
     def build_command(self, target: str, options: dict) -> list[str]:
+        # Nuclei requires http:// or https:// prefix
+        target = normalize_target(target, force_http=True)
         cmd = ["nuclei", "-u", target]
         severities = options.get("severities", ["medium", "high", "critical"])
         if severities:
@@ -280,6 +305,8 @@ class HttpxPlugin(ToolPlugin):
     }
 
     def build_command(self, target: str, options: dict) -> list[str]:
+        # httpx requires http:// or https:// prefix
+        target = normalize_target(target, force_http=True)
         cmd = ["httpx", "-u", target]
         for key, flag in self.FLAG_MAP.items():
             if options.get(key, True):

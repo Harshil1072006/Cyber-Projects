@@ -1,6 +1,7 @@
 """
 Scan CRUD endpoints.
 """
+import asyncio
 import uuid
 from datetime import datetime, timezone
 from typing import Optional
@@ -108,15 +109,19 @@ async def launch_scan(req: LaunchScanRequest, db: AsyncSession = Depends(get_db)
     db.add(scan)
     await db.commit()
 
-    # Run synchronously for now (WebSocket streaming is via /ws/)
+    # Run in a thread so we don't block the async event loop
     try:
-        raw_output, returncode = run_command_sync(cmd)
+        raw_output, returncode = await asyncio.to_thread(run_command_sync, cmd)
         findings_data = plugin.parse_output(raw_output, req.target)
         scan.raw_output = raw_output
         scan.status = "done" if returncode == 0 else "error"
     except FileNotFoundError:
         scan.status = "error"
         scan.raw_output = f"Error: '{req.tool}' is not installed or not in PATH."
+        findings_data = []
+    except asyncio.TimeoutError:
+        scan.status = "error"
+        scan.raw_output = f"Error: Scan timed out."
         findings_data = []
     except Exception as e:
         scan.status = "error"
@@ -161,14 +166,19 @@ async def launch_workflow(req: WorkflowRequest, db: AsyncSession = Depends(get_d
         db.add(scan)
         await db.commit()
 
+        # Run in a thread so we don't block the async event loop
         try:
-            raw_output, returncode = run_command_sync(cmd)
+            raw_output, returncode = await asyncio.to_thread(run_command_sync, cmd)
             findings_data = plugin.parse_output(raw_output, req.target)
             scan.raw_output = raw_output
             scan.status = "done" if returncode == 0 else "error"
         except FileNotFoundError:
             scan.status = "error"
             scan.raw_output = f"Error: '{step['tool']}' is not installed or not in PATH."
+            findings_data = []
+        except asyncio.TimeoutError:
+            scan.status = "error"
+            scan.raw_output = f"Error: Scan timed out."
             findings_data = []
         except Exception as e:
             scan.status = "error"

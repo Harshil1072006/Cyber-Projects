@@ -18,6 +18,7 @@ export default function Page() {
   const [selectedScanDetail, setSelectedScanDetail] = useState<Scan | null>(null);
   const [backendOnline, setBackendOnline] = useState(false);
   const [loadingScans, setLoadingScans] = useState(false);
+  const [clock, setClock] = useState(''); // empty string on SSR to avoid hydration mismatch
 
   const loadTools = useCallback(async () => {
     try { setTools(await api.tools()); } catch { /* offline */ }
@@ -40,6 +41,14 @@ export default function Page() {
     const interval = setInterval(() => { checkHealth(); loadScans(); }, 10000);
     return () => clearInterval(interval);
   }, [checkHealth, loadTools, loadScans]);
+
+  // Clock: only runs on client so it never mismatches SSR output
+  useEffect(() => {
+    const tick = () => setClock(new Date().toLocaleTimeString());
+    tick();
+    const id = setInterval(tick, 1000);
+    return () => clearInterval(id);
+  }, []);
 
   const handleSelectScan = useCallback(async (id: string) => {
     setSelectedScanId(id);
@@ -110,7 +119,7 @@ export default function Page() {
             </span>
           </div>
           <div style={{ fontSize: '0.75rem', color: 'var(--text-dim)', fontFamily: 'JetBrains Mono, monospace' }}>
-            localhost:8001 · {new Date().toLocaleTimeString()}
+            localhost:8001 · {clock}
           </div>
         </div>
 
