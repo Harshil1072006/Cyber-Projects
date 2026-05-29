@@ -45,16 +45,39 @@ class NmapPlugin(ToolPlugin):
         timing = options.get("timing", 4)
         cmd.append(self.TIMING_MAP.get(timing, "-T4"))
         # Minimum packet rate for faster scans (e.g. 1000 pkts/sec)
+        # Minimum packet rate: must be a positive integer
         min_rate = options.get("min_rate")
-        if min_rate:
-            cmd.extend(["--min-rate", str(min_rate)])
+        if min_rate is not None:
+            try:
+                min_rate_int = int(min_rate)
+                if min_rate_int > 0:
+                    cmd.extend(["--min-rate", str(min_rate_int)])
+            except (ValueError, TypeError):
+                # Invalid min_rate supplied; ignore to avoid command injection
+                pass
         # Boolean flags
         for key, flag in self.FLAG_MAP.items():
             if options.get(key):
                 cmd.append(flag)
-        # Custom ports (skip if fast_mode or all_ports already set)
-        if options.get("ports") and not options.get("all_ports") and not options.get("fast_mode"):
-            cmd.extend(["-p", options["ports"]])
+        # Custom ports: validate format (e.g., "80,443,1000-2000")
+        ports = options.get("ports")
+        if ports and not options.get("all_ports") and not options.get("fast_mode"):
+            def _valid_port_spec(spec: str) -> bool:
+                for part in spec.split(','):
+                    part = part.strip()
+                    if not part:
+                        return False
+                    if '-' in part:
+                        start, end = part.split('-', 1)
+                        if not (start.isdigit() and end.isdigit()):
+                            return False
+                    else:
+                        if not part.isdigit():
+                            return False
+                return True
+            if isinstance(ports, str) and _valid_port_spec(ports):
+                cmd.extend(["-p", ports])
+            # else: invalid ports string – skip to avoid injection
         # Output format: always use greppable output for easy parsing
         cmd.extend(["-oG", "-"])
         cmd.append(target)
@@ -63,37 +86,40 @@ class NmapPlugin(ToolPlugin):
     def parse_output(self, raw_output: str, target: str) -> list[dict[str, Any]]:
         findings = []
         for line in raw_output.splitlines():
+            # Skip comments and empty lines
             if line.startswith("#") or not line.strip():
                 continue
-            # Parse ports: "80/open/tcp//http//Apache httpd 2.4.41/"
-            ports_match = re.search(r"Ports:\s(.+)", line)
+            # Extract host if present
             host_match = re.search(r"Host:\s(\S+)", line)
             host = host_match.group(1) if host_match else target
-
-            if ports_match:
-                port_entries = ports_match.group(1).split(",")
-                for entry in port_entries:
-                    parts = [p.strip() for p in entry.split("/")]
-                    if len(parts) >= 3 and parts[1] == "open":
-                        port_num = int(parts[0]) if parts[0].isdigit() else None
-                        protocol = parts[2] if len(parts) > 2 else "tcp"
-                        service = parts[4] if len(parts) > 4 else ""
-                        version = parts[6] if len(parts) > 6 else ""
-                        title = f"Open Port {port_num}/{protocol}"
-                        if service:
-                            title += f" ({service})"
-                        if version:
-                            title += f" - {version}"
-                        findings.append({
-                            "type": "port",
-                            "severity": "info",
-                            "title": title,
-                            "host": host,
-                            "port": port_num,
-                            "protocol": protocol,
-                            "service": service,
-                            "extra": {"version": version},
-                        })
+            # Extract ports section
+            ports_match = re.search(r"Ports:\s(.+)", line)
+            if not ports_match:
+                continue
+            for entry in ports_match.group(1).split(","):
+                parts = [p.strip() for p in entry.split("/")]
+                # Expect at least: port/state/protocol
+                if len(parts) < 3 or parts[1] != "open":
+                    continue
+                port_num = int(parts[0]) if parts[0].isdigit() else None
+                protocol = parts[2] if len(parts) > 2 else "tcp"
+                service = parts[4] if len(parts) > 4 else ""
+                version = parts[6] if len(parts) > 6 else ""
+                title = f"Open Port {port_num}/{protocol}"
+                if service:
+                    title += f" ({service})"
+                if version:
+                    title += f" - {version}"
+                findings.append({
+                    "type": "port",
+                    "severity": "info",
+                    "title": title,
+                    "host": host,
+                    "port": port_num,
+                    "protocol": protocol,
+                    "service": service,
+                    "extra": {"version": version},
+                })
         return findings
 
 
@@ -139,22 +165,24 @@ class GobusterPlugin(ToolPlugin):
         findings = []
         for line in raw_output.splitlines():
             line = line.strip()
-            if not line or line.startswith("=") or line.startswith("/") is False and "http" not in line:
+            # Skip empty lines and separator lines
+            if not line or line.startswith("="):
                 continue
-            # Lines like: /admin (Status: 200) [Size: 1234]
+            # Expected format: /path (Status: CODE) [Size: N]
             m = re.match(r"(\S+)\s+\(Status:\s+(\d+)\)(?:\s+\[Size:\s+(\d+)\])?", line)
-            if m:
-                path, status_code, size = m.group(1), m.group(2), m.group(3)
-                severity = "info" if status_code == "200" else "info"
-                if status_code in ("401", "403"):
-                    severity = "medium"
-                findings.append({
-                    "type": "directory",
-                    "severity": severity,
-                    "title": f"Found: {path} [{status_code}]",
-                    "host": target,
-                    "extra": {"status_code": status_code, "size": size},
-                })
+            if not m:
+                continue
+            path, status_code, size = m.group(1), m.group(2), m.group(3)
+            severity = "info"
+            if status_code in ("401", "403"):
+                severity = "medium"
+            findings.append({
+                "type": "directory",
+                "severity": severity,
+                "title": f"Found: {path} [{status_code}]",
+                "host": target,
+                "extra": {"status_code": status_code, "size": size},
+            })
         return findings
 
 
@@ -309,7 +337,7 @@ class HttpxPlugin(ToolPlugin):
         target = normalize_target(target, force_http=True)
         cmd = ["httpx", "-u", target]
         for key, flag in self.FLAG_MAP.items():
-            if options.get(key, True):
+            if options.get(key, False):
                 cmd.append(flag)
         cmd.extend(["-json"])
         return cmd
