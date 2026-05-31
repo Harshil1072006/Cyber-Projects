@@ -1,0 +1,26 @@
+# Virtual environments
+venv/
+.venv/
+env/
+__pycache__/
+*.pyc
+*.pyo
+
+# Large binary/tool files
+*.zip
+*.exe
+*.dll
+*.gguf
+*.jar
+*.tar.gz
+*.zap
+*.fidbf
+
+# Tool directories
+vapt_v1/tools/
+vapt_v1/models/
+vapt_v1/venv/
+
+# OS files
+.DS_Store
+Thumbs.db
