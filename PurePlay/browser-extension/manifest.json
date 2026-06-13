@@ -1,0 +1,60 @@
+{
+  "manifest_version": 3,
+  "name": "PurePlay — Profanity Filter",
+  "version": "1.0.0",
+  "description": "Automatically mutes offensive words and profanity in any video — YouTube, Netflix, Prime Video and more.",
+  "author": "PurePlay",
+
+  "icons": {
+    "16": "icons/icon16.png",
+    "32": "icons/icon32.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "32": "icons/icon32.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    },
+    "default_title": "PurePlay"
+  },
+
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+
+  "content_scripts": [
+    {
+      "matches": [
+        "https://www.youtube.com/*",
+        "https://www.netflix.com/*",
+        "https://www.primevideo.com/*",
+        "https://www.amazon.com/gp/video/*",
+        "https://www.disneyplus.com/*",
+        "https://www.hulu.com/*",
+        "https://www.hotstar.com/*",
+        "https://www.hbomax.com/*",
+        "https://www.max.com/*",
+        "https://*/*"
+      ],
+      "js": ["profanity-list.js", "content.js"],
+      "run_at": "document_idle"
+    }
+  ],
+
+  "permissions": [
+    "storage",
+    "activeTab",
+    "scripting"
+  ],
+
+  "host_permissions": [
+    "https://*/*",
+    "http://*/*"
+  ]
+}

@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PurePlay</title>
+  <link rel="stylesheet" href="popup.css" />
+</head>
+<body>
+  <div class="app" id="app">
+
+    <!-- Header -->
+    <header class="header">
+      <div class="logo">
+        <div class="logo-icon">
+          <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
+            <polygon points="5,3 19,11 5,19" fill="url(#g1)"/>
+            <line x1="3" y1="18" x2="19" y2="18" stroke="#a78bfa" stroke-width="2.5" stroke-linecap="round" opacity="0.5"/>
+            <defs>
+              <linearGradient id="g1" x1="0" y1="0" x2="1" y2="1">
+                <stop offset="0%" stop-color="#a78bfa"/>
+                <stop offset="100%" stop-color="#7c3aed"/>
+              </linearGradient>
+            </defs>
+          </svg>
+        </div>
+        <span class="logo-text">PurePlay</span>
+      </div>
+      <div class="toggle-wrap" id="toggle-wrap">
+        <span class="toggle-label" id="toggle-label">ON</span>
+        <button class="toggle-btn" id="toggle-btn" role="switch" aria-checked="true" title="Enable/Disable PurePlay">
+          <span class="toggle-thumb"></span>
+        </button>
+      </div>
+    </header>
+
+    <!-- Status Banner -->
+    <div class="status-banner" id="status-banner">
+      <div class="status-dot" id="status-dot"></div>
+      <span id="status-text">Listening for video...</span>
+    </div>
+
+    <!-- Stats Row -->
+    <div class="stats-row">
+      <div class="stat-card">
+        <div class="stat-value" id="stat-blocked">0</div>
+        <div class="stat-label">Blocked Today</div>
+      </div>
+      <div class="stat-divider"></div>
+      <div class="stat-card">
+        <div class="stat-value" id="stat-total">0</div>
+        <div class="stat-label">All-Time</div>
+      </div>
+      <div class="stat-divider"></div>
+      <div class="stat-card">
+        <div class="stat-value" id="stat-last">—</div>
+        <div class="stat-label">Last Word</div>
+      </div>
+    </div>
+
+    <!-- Settings Section -->
+    <div class="settings">
+
+      <!-- Filter Level -->
+      <div class="setting-group">
+        <label class="setting-label">Filter Sensitivity</label>
+        <div class="chip-group" id="filter-level-group">
+          <button class="chip" data-value="severe" id="chip-severe">Severe Only</button>
+          <button class="chip active" data-value="moderate" id="chip-moderate">Moderate</button>
+          <button class="chip" data-value="mild" id="chip-mild">All Words</button>
+        </div>
+      </div>
+
+      <!-- Language -->
+      <div class="setting-group">
+        <label class="setting-label">Languages to Filter</label>
+        <div class="chip-group" id="lang-group">
+          <button class="chip lang-chip active" data-lang="en" id="chip-lang-en">🇺🇸 English</button>
+          <button class="chip lang-chip active" data-lang="hi" id="chip-lang-hi">🇮🇳 Hindi / Hinglish</button>
+        </div>
+        <p class="setting-hint">Both enabled = en-IN mode (understands Hinglish)</p>
+      </div>
+
+      <!-- Mute Mode -->
+      <div class="setting-group">
+        <label class="setting-label">When Detected</label>
+        <div class="chip-group" id="mute-mode-group">
+          <button class="chip active" data-value="mute" id="chip-mute">🔇 Silence</button>
+          <button class="chip" data-value="beep" id="chip-beep">📢 Beep</button>
+        </div>
+      </div>
+
+      <!-- Custom Words -->
+      <div class="setting-group">
+        <label class="setting-label">Custom Blocked Words</label>
+        <div class="word-input-row">
+          <input
+            type="text"
+            id="custom-word-input"
+            class="word-input"
+            placeholder="Add a word..."
+            maxlength="30"
+          />
+          <button class="add-btn" id="add-word-btn" title="Add word">+</button>
+        </div>
+        <div class="word-tags" id="word-tags"></div>
+      </div>
+
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+      <span>Works on YouTube · Netflix · Prime · Disney+</span>
+    </footer>
+
+    <!-- Toast -->
+    <div class="toast" id="toast"></div>
+
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

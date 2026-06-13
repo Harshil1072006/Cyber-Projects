@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AutoFill Pro - Settings</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="options.css" />
+</head>
+<body>
+
+  <!-- ── Sidebar ────────────────────────────────────── -->
+  <aside class="sidebar">
+    <div class="sidebar-header">
+      <div class="logo-icon">⚡</div>
+      <div>
+        <div class="logo-title">AutoFill Pro</div>
+        <div class="logo-sub">Settings & Profiles</div>
+      </div>
+    </div>
+    
+    <div class="nav-section">
+      <div class="nav-title">Profiles</div>
+      <div id="nav-profiles-list" class="nav-list">
+        <!-- Injected via JS -->
+      </div>
+      <button class="nav-btn-add" id="btn-add-profile">
+        <span>+</span> Add New Profile
+      </button>
+    </div>
+
+    <div class="nav-section">
+      <div class="nav-title">Preferences</div>
+      <div class="nav-item" id="nav-general" data-target="view-settings">
+        ⚙️ General Settings
+      </div>
+    </div>
+
+    <div class="sidebar-footer">
+      <button class="export-btn" id="btn-export">Export Data</button>
+      <button class="export-btn" id="btn-import">Import Data</button>
+      <input type="file" id="file-import" class="hidden" accept=".json" />
+    </div>
+  </aside>
+
+  <!-- ── Main Content ───────────────────────────────── -->
+  <main class="content">
+
+    <!-- View: Profile Editor -->
+    <section id="view-profile" class="view-section">
+      <div class="view-header">
+        <div>
+          <h1 class="view-title" id="editor-title">Edit Profile</h1>
+          <p class="view-sub">Manage the autofill fields for this identity.</p>
+        </div>
+        <div class="header-actions">
+          <button class="btn btn-danger" id="btn-delete-profile">Delete</button>
+          <button class="btn btn-primary" id="btn-save-profile">Save Changes</button>
+        </div>
+      </div>
+
+      <div class="editor-grid">
+        
+        <!-- Identity -->
+        <div class="form-group-card">
+          <h2 class="card-title">Identity & Naming</h2>
+          <div class="field-row">
+            <div class="field">
+              <label>Profile Name (Internal)</label>
+              <input type="text" id="f_profileName" placeholder="e.g. Work, Personal" />
+            </div>
+            <div class="field icon-picker">
+              <label>Icon & Color</label>
+              <div class="icon-wrap">
+                <input type="text" id="f_icon" class="input-icon" value="👤" maxlength="2" />
+                <input type="color" id="f_color" value="#7c3aed" />
+              </div>
+            </div>
+          </div>
+          <div class="divider"></div>
+          <div class="field-row">
+            <div class="field">
+              <label>First Name</label>
+              <input type="text" id="f_firstName" />
+            </div>
+            <div class="field">
+              <label>Last Name</label>
+              <input type="text" id="f_lastName" />
+            </div>
+          </div>
+          <div class="field">
+            <label>Full Name</label>
+            <input type="text" id="f_fullName" placeholder="(Optional) If left blank, first + last is used" />
+          </div>
+          <div class="field-row">
+            <div class="field">
+              <label>Date of Birth</label>
+              <input type="date" id="f_dob" />
+            </div>
+          </div>
+        </div>
+
+        <!-- Contact Info -->
+        <div class="form-group-card">
+          <h2 class="card-title">Contact Information</h2>
+          <div class="field-row">
+            <div class="field">
+              <label>Email Address</label>
+              <input type="email" id="f_email" />
+            </div>
+            <div class="field">
+              <label>Secondary Email</label>
+              <input type="email" id="f_emailAlt" />
+            </div>
+          </div>
+          <div class="field-row">
+            <div class="field">
+              <label>Phone Number</label>
+              <input type="tel" id="f_phone" />
+            </div>
+            <div class="field">
+              <label>Mobile Number</label>
+              <input type="tel" id="f_mobile" />
+            </div>
+          </div>
+        </div>
+
+        <!-- Address -->
+        <div class="form-group-card">
+          <h2 class="card-title">Address</h2>
+          <div class="field">
+            <label>Address Line 1</label>
+            <input type="text" id="f_address1" placeholder="Street address, P.O. box, etc." />
+          </div>
+          <div class="field">
+            <label>Address Line 2</label>
+            <input type="text" id="f_address2" placeholder="Apt, suite, unit, building, floor, etc." />
+          </div>
+          <div class="field-row-3">
+            <div class="field">
+              <label>City</label>
+              <input type="text" id="f_city" />
+            </div>
+            <div class="field">
+              <label>State / Province</label>
+              <input type="text" id="f_state" />
+            </div>
+            <div class="field">
+              <label>ZIP / Postal Code</label>
+              <input type="text" id="f_zip" />
+            </div>
+          </div>
+          <div class="field">
+            <label>Country</label>
+            <input type="text" id="f_country" />
+          </div>
+        </div>
+
+        <!-- Work & Web -->
+        <div class="form-group-card">
+          <h2 class="card-title">Work & Social</h2>
+          <div class="field-row">
+            <div class="field">
+              <label>Company / Organization</label>
+              <input type="text" id="f_company" />
+            </div>
+            <div class="field">
+              <label>Job Title</label>
+              <input type="text" id="f_jobTitle" />
+            </div>
+          </div>
+          <div class="field-row">
+            <div class="field">
+              <label>Website</label>
+              <input type="url" id="f_website" />
+            </div>
+            <div class="field">
+              <label>Username / Handle</label>
+              <input type="text" id="f_username" />
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- View: General Settings -->
+    <section id="view-settings" class="view-section hidden">
+      <div class="view-header">
+        <div>
+          <h1 class="view-title">General Settings</h1>
+          <p class="view-sub">Configure how AutoFill Pro behaves across your browser.</p>
+        </div>
+      </div>
+
+      <div class="settings-list">
+        
+        <div class="setting-item">
+          <div class="setting-info">
+            <div class="s-title">Auto-fill on page load</div>
+            <div class="s-desc">Automatically fill forms without needing to click the extension icon.</div>
+          </div>
+          <label class="toggle">
+            <input type="checkbox" id="set-autoFill" />
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+
+        <div class="setting-item">
+          <div class="setting-info">
+            <div class="s-title">Highlight Filled Fields</div>
+            <div class="s-desc">Briefly show a purple glow on fields that were automatically filled.</div>
+          </div>
+          <label class="toggle">
+            <input type="checkbox" id="set-highlight" />
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Notification Toast -->
+  <div id="toast" class="toast">Saved!</div>
+
+  <script src="options.js"></script>
+</body>
+</html>

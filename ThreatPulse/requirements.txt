@@ -1,0 +1,33 @@
+# Threat Intelligence Pipeline
+
+# Core
+requests>=2.31.0
+sqlalchemy>=2.0.23
+psycopg2-binary>=2.9.9
+alembic>=1.13.0
+python-dotenv>=1.0.0
+pandas>=2.1.4
+
+# Data Collection
+feedparser>=6.0.11
+
+# Enrichment
+dnspython>=2.4.2
+python-whois>=0.9.4
+
+# Task Queue
+celery[redis]>=5.3.6
+redis>=5.0.1
+
+# Reporting
+jinja2>=3.1.2
+weasyprint>=61.0
+
+# Testing
+pytest>=7.4.3
+pytest-cov>=4.1.0
+responses>=0.24.1
+
+# Utilities
+ipaddress>=1.0.23
+urllib3>=2.1.0

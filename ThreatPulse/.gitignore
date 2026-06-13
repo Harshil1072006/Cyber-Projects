@@ -1,0 +1,56 @@
+# Environment & Secrets
+.env
+*.env.local
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg-info/
+dist/
+build/
+eggs/
+*.egg
+.venv/
+venv/
+ENV/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Data (raw feeds — regenerated on each run)
+data/raw/
+data/staging/
+
+# Logs
+logs/
+*.log
+
+# Docker volumes
+postgres_data/
+redis_data/
+grafana_data/
+elasticsearch_data/
+
+# Test
+.pytest_cache/
+htmlcov/
+.coverage
+
+# Docs build artifacts
+docs/_build/
+
+# Blueprint (source doc, not needed in repo)
+*.docx
+blueprint_text.txt
+read_docx.ps1
