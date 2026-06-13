@@ -1,0 +1,78 @@
+# Semgrep Configuration
+# https://semgrep.dev/docs/running-rules/
+
+rules:
+  # ─── OWASP Top 10 ─────────────────────────────────────────
+  - id: sql-injection-risk
+    patterns:
+      - pattern: |
+          $QUERY = "... %s ..." % $INPUT
+      - pattern: |
+          $QUERY = f"... {$INPUT} ..."
+    message: "Potential SQL injection: user input interpolated directly into query string."
+    languages: [python]
+    severity: ERROR
+    metadata:
+      category: security
+      owasp: "A03:2021 - Injection"
+      cwe: "CWE-89"
+
+  - id: hardcoded-secret
+    patterns:
+      - pattern: |
+          $KEY = "..."
+      - metavariable-regex:
+          metavariable: $KEY
+          regex: (password|secret|api_key|token|passwd|pwd)
+    message: "Hardcoded secret detected. Use environment variables instead."
+    languages: [python, javascript]
+    severity: ERROR
+    metadata:
+      category: security
+      owasp: "A02:2021 - Cryptographic Failures"
+      cwe: "CWE-798"
+
+  - id: command-injection
+    patterns:
+      - pattern: os.system($CMD)
+      - pattern: subprocess.call($CMD, shell=True)
+      - pattern: subprocess.run($CMD, shell=True)
+    message: "Potential command injection. Avoid shell=True with user-controlled input."
+    languages: [python]
+    severity: ERROR
+    metadata:
+      category: security
+      owasp: "A03:2021 - Injection"
+      cwe: "CWE-78"
+
+  - id: eval-usage
+    patterns:
+      - pattern: eval($X)
+    message: "Use of eval() is dangerous and can lead to code injection."
+    languages: [python, javascript]
+    severity: WARNING
+    metadata:
+      category: security
+      cwe: "CWE-95"
+
+  - id: insecure-random
+    patterns:
+      - pattern: random.random()
+      - pattern: random.randint(...)
+    message: "Use secrets module instead of random for security-sensitive operations."
+    languages: [python]
+    severity: WARNING
+    metadata:
+      category: security
+      owasp: "A02:2021 - Cryptographic Failures"
+      cwe: "CWE-330"
+
+  - id: debug-enabled
+    patterns:
+      - pattern: app.run(..., debug=True, ...)
+      - pattern: DEBUG = True
+    message: "Debug mode enabled. Disable before deploying to production."
+    languages: [python]
+    severity: WARNING
+    metadata:
+      category: security

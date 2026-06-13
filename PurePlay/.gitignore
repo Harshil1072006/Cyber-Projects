@@ -1,0 +1,23 @@
+# PurePlay — .gitignore
+
+# ─── Extension build artifacts ───────────────────────────────
+*.crx
+*.xpi
+dist/
+build/
+extension.zip
+*.zip
+
+# ─── Generated icons ─────────────────────────────────────────
+# Uncomment if icons are generated, not manually crafted:
+# browser-extension/icons/
+
+# ─── Node / npm ──────────────────────────────────────────────
+node_modules/
+package-lock.json
+
+# ─── OS & Editor ─────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

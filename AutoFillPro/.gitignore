@@ -1,0 +1,22 @@
+# AutoFillPro — .gitignore
+
+# ─── Extension build artifacts ───────────────────────────────
+*.crx
+*.xpi
+dist/
+build/
+extension.zip
+
+# ─── Node / npm ──────────────────────────────────────────────
+node_modules/
+package-lock.json
+.npm/
+
+# ─── OS ──────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+
+# ─── Editor ──────────────────────────────────────────────────
+.vscode/
+.idea/
+*.swp

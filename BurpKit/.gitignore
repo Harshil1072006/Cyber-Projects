@@ -1,0 +1,28 @@
+# BurpKit — .gitignore
+
+# ─── Generated report files (can be massive) ─────────────────
+sqli_report*.html
+sqli_report*.json
+*.html
+*.json
+reports/
+
+# ─── Python ──────────────────────────────────────────────────
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.venv/
+venv/
+env/
+.Python
+
+# ─── OS ──────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+
+# ─── Editor ──────────────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo

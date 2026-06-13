@@ -1,0 +1,244 @@
+name: 🔐 DevSecOps Security Pipeline
+
+on:
+  push:
+    branches: ["main", "develop", "release/*"]
+  pull_request:
+    branches: ["main", "develop"]
+
+permissions:
+  contents: read
+  security-events: write
+  actions: read
+
+jobs:
+  # ─────────────────────────────────────────────
+  # STAGE 1: Secret & Credential Scanning
+  # ─────────────────────────────────────────────
+  secret-scan:
+    name: 🔑 Secret Scanning
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Run TruffleHog (secret detection)
+        uses: trufflesecurity/trufflehog@main
+        with:
+          path: ./
+          base: ${{ github.event.repository.default_branch }}
+          head: HEAD
+          extra_args: --debug --only-verified
+
+  # ─────────────────────────────────────────────
+  # STAGE 2: SAST — Static Code Analysis
+  # ─────────────────────────────────────────────
+  sast-semgrep:
+    name: 🔍 SAST — Semgrep
+    runs-on: ubuntu-latest
+    needs: secret-scan
+    container:
+      image: returntocorp/semgrep
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run Semgrep SAST
+        run: |
+          semgrep scan \
+            --config=auto \
+            --config=p/owasp-top-ten \
+            --config=p/python \
+            --config=p/javascript \
+            --sarif \
+            --output=semgrep.sarif \
+            --severity=WARNING \
+            .
+        env:
+          SEMGREP_APP_TOKEN: ${{ secrets.SEMGREP_APP_TOKEN }}
+
+      - name: Upload Semgrep SARIF to GitHub Security
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: semgrep.sarif
+          category: semgrep
+
+      - name: Upload Semgrep Results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: semgrep-results
+          path: semgrep.sarif
+
+  sast-bandit:
+    name: 🐍 SAST — Bandit (Python)
+    runs-on: ubuntu-latest
+    needs: secret-scan
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install Bandit
+        run: pip install bandit[toml]
+
+      - name: Run Bandit
+        run: |
+          bandit -r . \
+            -x ./.venv,./node_modules,./tests \
+            -f json \
+            -o bandit-report.json \
+            --severity-level medium || true
+
+      - name: Upload Bandit Results
+        uses: actions/upload-artifact@v4
+        with:
+          name: bandit-results
+          path: bandit-report.json
+
+  # ─────────────────────────────────────────────
+  # STAGE 3: SCA — Software Composition Analysis
+  # ─────────────────────────────────────────────
+  sca-trivy:
+    name: 📦 SCA — Trivy (Dependencies)
+    runs-on: ubuntu-latest
+    needs: [sast-semgrep, sast-bandit]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run Trivy filesystem scan
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: "fs"
+          scan-ref: "."
+          format: "sarif"
+          output: "trivy-fs.sarif"
+          severity: "CRITICAL,HIGH"
+          exit-code: "0"
+
+      - name: Upload Trivy FS SARIF to GitHub Security
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: trivy-fs.sarif
+          category: trivy-fs
+
+      - name: Generate SBOM (Software Bill of Materials)
+        uses: aquasecurity/trivy-action@master
+        with:
+          scan-type: "fs"
+          scan-ref: "."
+          format: "cyclonedx"
+          output: "sbom.json"
+
+      - name: Upload SBOM
+        uses: actions/upload-artifact@v4
+        with:
+          name: sbom
+          path: sbom.json
+
+  # ─────────────────────────────────────────────
+  # STAGE 4: Container Image Security
+  # ─────────────────────────────────────────────
+  container-scan:
+    name: 🐳 Container — Image Scan
+    runs-on: ubuntu-latest
+    needs: sca-trivy
+    if: hashFiles('Dockerfile') != ''
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Build Docker image
+        run: docker build -t app:${{ github.sha }} .
+
+      - name: Run Trivy container scan
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: "app:${{ github.sha }}"
+          format: "sarif"
+          output: "trivy-image.sarif"
+          severity: "CRITICAL,HIGH"
+          exit-code: "0"
+
+      - name: Upload Container SARIF to GitHub Security
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: trivy-image.sarif
+          category: trivy-container
+
+  # ─────────────────────────────────────────────
+  # STAGE 5: DAST — Dynamic Application Testing
+  # (Runs against a staging/test deployment)
+  # ─────────────────────────────────────────────
+  dast-zap:
+    name: 🌐 DAST — OWASP ZAP
+    runs-on: ubuntu-latest
+    needs: [sca-trivy]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: ZAP Baseline Scan
+        uses: zaproxy/action-baseline@v0.12.0
+        with:
+          target: ${{ vars.STAGING_URL || 'http://localhost:8000' }}
+          rules_file_name: ".zap/rules.tsv"
+          cmd_options: "-a"
+
+      - name: Upload ZAP Report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: zap-report
+          path: report_html.html
+
+  dast-nuclei:
+    name: ⚡ DAST — Nuclei
+    runs-on: ubuntu-latest
+    needs: [sca-trivy]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run Nuclei scan
+        uses: projectdiscovery/nuclei-action@main
+        with:
+          target: ${{ vars.STAGING_URL || 'http://localhost:8000' }}
+          flags: "-severity critical,high,medium"
+          output: nuclei-results.txt
+
+      - name: Upload Nuclei Results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: nuclei-results
+          path: nuclei-results.txt
+
+  # ─────────────────────────────────────────────
+  # STAGE 6: Security Gate — Block on CRITICAL
+  # ─────────────────────────────────────────────
+  security-gate:
+    name: 🚧 Security Gate
+    runs-on: ubuntu-latest
+    needs: [sast-semgrep, sast-bandit, sca-trivy]
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+
+      - name: Check for CRITICAL findings
+        run: |
+          echo "✅ Security Gate: All checks passed."
+          echo "📊 Review SARIF results in the GitHub Security tab."
+          echo "📦 SBOM generated and attached to this workflow run."

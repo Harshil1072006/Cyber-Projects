@@ -1,0 +1,42 @@
+# Trivy Configuration
+# https://aquasecurity.github.io/trivy/latest/docs/references/configuration/config-file/
+
+# Scan settings
+severity: [CRITICAL, HIGH, MEDIUM]
+exit-code: 0
+
+# Ignore unfixed vulnerabilities
+ignore-unfixed: false
+
+# Output format
+format: table
+
+# Cache directory
+cache:
+  dir: ~/.cache/trivy
+
+# Vulnerability database
+db:
+  no-progress: false
+
+# File system scan
+fs:
+  security-checks:
+    - vuln
+    - secret
+    - config
+
+# Secret scanning
+secret:
+  config: trivy-secret.yaml
+
+# Skip files/dirs
+skip-files:
+  - "**/*.test.py"
+  - "**/test_*.py"
+skip-dirs:
+  - node_modules
+  - .venv
+  - venv
+  - __pycache__
+  - .git

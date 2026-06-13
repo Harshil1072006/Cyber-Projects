@@ -1,0 +1,52 @@
+# Security-focused .gitignore for DevSecOps Pipeline
+
+# ─── NEVER commit these ──────────────────────────────────────
+.env
+.env.*
+!.env.example
+*.key
+*.pem
+*.p12
+*.pfx
+*.cer
+*.crt
+secrets.yaml
+secrets.json
+*secret*
+*password*
+*credential*
+
+# ─── Security Report Outputs ─────────────────────────────────
+security-reports/
+*.sarif
+*.sbom
+sbom.json
+trivy-*.txt
+trivy-*.json
+bandit*.json
+semgrep*.json
+nuclei-results.*
+zap-report.*
+
+# ─── Python ──────────────────────────────────────────────────
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+env/
+
+# ─── Node / JS ───────────────────────────────────────────────
+node_modules/
+dist/
+.next/
+
+# ─── OS & Editor ─────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# ─── Docker ──────────────────────────────────────────────────
+.dockerignore
+docker-compose.override.yml

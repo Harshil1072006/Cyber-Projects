@@ -1,0 +1,6 @@
+# Core packet capture
+scapy>=2.5.0
+
+# CLI aesthetics
+rich>=13.7.0
+colorama>=0.4.6
