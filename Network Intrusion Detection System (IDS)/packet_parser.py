@@ -20,7 +20,7 @@ class ParsedPacket:
     src_port:     Optional[int] = None
     dst_port:     Optional[int] = None
     flags:        Optional[str] = None   # TCP flags: S, A, F, R, P, U
-    payload:      bytes = field(default_factory=lambda: b"")
+    payload:      bytes = b""
     payload_text: str = ""
     size:         int = 0
     # ARP-specific
