@@ -20,7 +20,7 @@ class ParsedPacket:
     src_port:     Optional[int] = None
     dst_port:     Optional[int] = None
     flags:        Optional[str] = None   # TCP flags: S, A, F, R, P, U
-    payload:      bytes = field(default_factory=bytes)
+    payload:      bytes = field(default_factory=lambda: b"")
     payload_text: str = ""
     size:         int = 0
     # ARP-specific
@@ -167,9 +167,14 @@ def _decode_tcp_flags(flags) -> str:
         0x10: "A",  # ACK
         0x20: "U",  # URG
     }
+    # Scapy uses a FlagValue object — safely cast to int
+    try:
+        flag_int = int(flags)
+    except (TypeError, ValueError):
+        return "."
     result = ""
     for bit, char in flag_map.items():
-        if int(flags) & bit:
+        if flag_int & bit:
             result += char
     return result or "."
 
