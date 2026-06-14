@@ -1,0 +1,73 @@
+{
+  "tool": "semgrep",
+  "timestamp": "2026-06-14T13:07:30.423246Z",
+  "rules_used": [
+    "java-deser.yaml",
+    "jwt-misconfig.yaml",
+    "sqli-patterns.yaml",
+    "hardcoded-creds.yaml"
+  ],
+  "total_findings": 6,
+  "findings": [
+    {
+      "rule_id": "jwt-alg-none-bypass",
+      "file": "target-app/src/main/java/com/finsecure/security/JwtFilter.java",
+      "line": 65,
+      "message": "JWT alg:none bypass vulnerability: parseClaimsJwt() accepts tokens with no signature.",
+      "owasp": "A02:2021",
+      "cvss": 9.1,
+      "severity": "CRITICAL",
+      "code_snippet": "Claims claims = Jwts.parser().parseClaimsJwt(token).getBody();"
+    },
+    {
+      "rule_id": "jwt-hardcoded-secret",
+      "file": "target-app/src/main/java/com/finsecure/security/JwtFilter.java",
+      "line": 42,
+      "message": "Hardcoded JWT secret detected in signWith(). Source code leak exposes entire auth system.",
+      "owasp": "A07:2021",
+      "cvss": 7.5,
+      "severity": "HIGH",
+      "code_snippet": "private static final String SECRET_KEY = \"secret123\";"
+    },
+    {
+      "rule_id": "jwt-no-expiry",
+      "file": "target-app/src/main/java/com/finsecure/controller/AuthController.java",
+      "line": 53,
+      "message": "JWT token issued without setExpiration(). Tokens never expire.",
+      "owasp": "A07:2021",
+      "cvss": 6.5,
+      "severity": "MEDIUM",
+      "code_snippet": "Jwts.builder().setSubject(user.getUsername()).claim(...).compact()"
+    },
+    {
+      "rule_id": "sqli-string-concat-jdbctemplate",
+      "file": "target-app/src/main/java/com/finsecure/controller/AccountController.java",
+      "line": 118,
+      "message": "SQL Injection via string concatenation in JdbcTemplate \u2014 second-order SQLi vector.",
+      "owasp": "A03:2021",
+      "cvss": 9.8,
+      "severity": "CRITICAL",
+      "code_snippet": "String sql = \"SELECT * FROM accounts WHERE profile_note = '\" + note + \"'\";"
+    },
+    {
+      "rule_id": "hardcoded-credential-field",
+      "file": "target-app/src/main/java/com/finsecure/security/JwtFilter.java",
+      "line": 42,
+      "message": "Hardcoded credential in class field: SECRET_KEY = 'secret123'",
+      "owasp": "A07:2021",
+      "cvss": 7.5,
+      "severity": "HIGH",
+      "code_snippet": "private static final String SECRET_KEY = \"secret123\";"
+    },
+    {
+      "rule_id": "hardcoded-credential-field",
+      "file": "target-app/src/main/java/com/finsecure/controller/AuthController.java",
+      "line": 25,
+      "message": "Hardcoded credential in class field: SECRET_KEY = 'secret123'",
+      "owasp": "A07:2021",
+      "cvss": 7.5,
+      "severity": "HIGH",
+      "code_snippet": "private static final String SECRET_KEY = \"secret123\";"
+    }
+  ]
+}

@@ -1,0 +1,73 @@
+{
+  "timestamp": "2026-06-14T13:07:42.323620Z",
+  "cves": [
+    {
+      "id": "CVE-2022-42003",
+      "published": "2022-10-02",
+      "cvss_score": 7.5,
+      "cvss_vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H",
+      "severity": "HIGH",
+      "description": "In FasterXML jackson-databind before versions 2.13.4.1 and 2.12.17.1, resource exhaustion can occur because of a lack of a check in primitive value deserializers to avoid deep wrapper array nesting, when the UNWRAP_SINGLE_VALUE_ARRAYS feature is enabled.",
+      "affected_library": "See NVD for affected products",
+      "affected_versions": "See NVD",
+      "fixed_version": "See NVD advisory",
+      "references": [
+        "https://bugs.chromium.org/p/oss-fuzz/issues/detail?id=51020",
+        "https://github.com/FasterXML/jackson-databind/commit/d78d00ee7b5245b93103fef3187f70543d67ca33",
+        "https://github.com/FasterXML/jackson-databind/issues/3590"
+      ],
+      "cwe": "CWE-502"
+    },
+    {
+      "id": "CVE-2022-42004",
+      "published": "2022-10-02",
+      "cvss_score": 7.5,
+      "cvss_vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H",
+      "severity": "HIGH",
+      "description": "In FasterXML jackson-databind before 2.13.4, resource exhaustion can occur because of a lack of a check in BeanDeserializer._deserializeFromArray to prevent use of deeply nested arrays. An application is vulnerable only with certain customized choices for deserialization.",
+      "affected_library": "See NVD for affected products",
+      "affected_versions": "See NVD",
+      "fixed_version": "See NVD advisory",
+      "references": [
+        "https://bugs.chromium.org/p/oss-fuzz/issues/detail?id=50490",
+        "https://github.com/FasterXML/jackson-databind/commit/063183589218fec19a9293ed2f17ec53ea80ba88",
+        "https://github.com/FasterXML/jackson-databind/issues/3582"
+      ],
+      "cwe": "CWE-502"
+    },
+    {
+      "id": "CVE-2015-6420",
+      "published": "2015-12-15",
+      "cvss_score": 9.8,
+      "cvss_vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H",
+      "severity": "CRITICAL",
+      "description": "Serialized-object interfaces in certain Cisco Collaboration and Social Media; Endpoint Clients and Client Software; Network Application, Service, and Acceleration; Network and Content Security Devices; Network Management and Provisioning; Routing and Switching - Enterprise and Service Provider; Unified Computing; Voice and Unified Communications Devices; Video, Streaming, TelePresence, and Transcoding Devices; Wireless; and Cisco Hosted Services products allow remote attackers to execute arbitrary commands via a crafted serialized Java object, related to the Apache Commons Collections (ACC) library.",
+      "affected_library": "See NVD for affected products",
+      "affected_versions": "See NVD",
+      "fixed_version": "See NVD advisory",
+      "references": [
+        "http://tools.cisco.com/security/center/content/CiscoSecurityAdvisory/cisco-sa-20151209-java-deserialization",
+        "http://www.oracle.com/technetwork/security-advisory/cpujul2018-4258247.html",
+        "http://www.securityfocus.com/bid/78872"
+      ],
+      "cwe": "CWE-502"
+    },
+    {
+      "id": "CVE-2022-22965",
+      "published": "2022-04-01",
+      "cvss_score": 9.8,
+      "cvss_vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H",
+      "severity": "CRITICAL",
+      "description": "A Spring MVC or Spring WebFlux application running on JDK 9+ may be vulnerable to remote code execution (RCE) via data binding. The specific exploit requires the application to run on Tomcat as a WAR deployment. If the application is deployed as a Spring Boot executable jar, i.e. the default, it is not vulnerable to the exploit. However, the nature of the vulnerability is more general, and there may be other ways to exploit it.",
+      "affected_library": "See NVD for affected products",
+      "affected_versions": "See NVD",
+      "fixed_version": "See NVD advisory",
+      "references": [
+        "http://packetstormsecurity.com/files/166713/Spring4Shell-Code-Execution.html",
+        "http://packetstormsecurity.com/files/167011/Spring4Shell-Spring-Framework-Class-Property-Remote-Code-Execution.html",
+        "https://cert-portal.siemens.com/productcert/pdf/ssa-254054.pdf"
+      ],
+      "cwe": "CWE-94"
+    }
+  ]
+}

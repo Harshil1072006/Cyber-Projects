@@ -1,0 +1,126 @@
+# =============================================================================
+# sqli-patterns.yaml — Semgrep SAST Rule
+# Detects: String concatenation inside SQL execution methods
+#
+# WHY THIS MATTERS:
+#   SQL Injection remains the #1 web vulnerability (OWASP A03). The pattern
+#   is always the same: user input concatenated into a SQL string instead of
+#   using parameterized queries. SAST can catch this at code review time,
+#   before the code ever reaches production or a pentester.
+#
+# WHAT IT CATCHES:
+#   Rule 1: String concat (+) inside createQuery() / createNativeQuery()  
+#   Rule 2: String concat inside Statement.execute() / executeQuery() / executeUpdate()
+#   Rule 3: String.format() used to build SQL strings
+#   Rule 4: Raw JDBC string building with user-controlled variables
+#   Rule 5: JdbcTemplate.queryForList/query/update with concatenated SQL
+#
+# RUN COMMAND:
+#   semgrep --config assessment/sast/semgrep_rules/sqli-patterns.yaml target-app/src
+# =============================================================================
+
+rules:
+  - id: sqli-string-concat-jpa-createquery
+    languages: [java]
+    severity: ERROR
+    message: >
+      SQL Injection via string concatenation in createQuery()/createNativeQuery().
+      User-controlled input concatenated directly into a JPQL or native SQL string.
+      Use named parameters: createQuery("SELECT u FROM User u WHERE u.name = :name")
+      .setParameter("name", userInput) instead.
+    metadata:
+      cwe: "CWE-89: Improper Neutralization of Special Elements in SQL Commands"
+      owasp: "A03:2021 - Injection"
+      cvss: "9.8"
+      references:
+        - https://owasp.org/www-community/attacks/SQL_Injection
+      category: security
+      technology: [java, spring]
+
+    patterns:
+      - pattern: $EM.createQuery("..." + ...)
+      - pattern: $EM.createNativeQuery("..." + ...)
+      - pattern: $EM.createQuery($SQL + ...)
+      - pattern: $EM.createNativeQuery($SQL + ...)
+
+  - id: sqli-string-concat-jdbc-statement
+    languages: [java]
+    severity: ERROR
+    message: >
+      SQL Injection via string concatenation in JDBC Statement execution.
+      Any user input in $SQL allows an attacker to modify query logic, extract
+      data, or in some DBs execute OS commands. Use PreparedStatement with
+      parameterized placeholders (?) instead of Statement.
+    metadata:
+      cwe: "CWE-89"
+      owasp: "A03:2021"
+      cvss: "9.8"
+      category: security
+
+    patterns:
+      - pattern: $STMT.execute("..." + ...)
+      - pattern: $STMT.executeQuery("..." + ...)
+      - pattern: $STMT.executeUpdate("..." + ...)
+      - pattern: $CONN.createStatement().execute("..." + ...)
+
+  - id: sqli-string-concat-jdbctemplate
+    languages: [java]
+    severity: ERROR
+    message: >
+      SQL Injection via string concatenation passed to JdbcTemplate.
+      JdbcTemplate supports safe parameterized queries — use
+      jdbcTemplate.query(sql, new Object[]{param}, mapper) with ? placeholders.
+    metadata:
+      cwe: "CWE-89"
+      owasp: "A03:2021"
+      cvss: "9.8"
+      category: security
+
+    patterns:
+      - pattern: $JT.queryForList("..." + ...)
+      - pattern: $JT.queryForList($SQL + ...)
+      - pattern: $JT.query("..." + ...)
+      - pattern: $JT.update("..." + ...)
+      - pattern: |
+          String $SQL = "..." + $VAR;
+          ...
+          $JT.queryForList($SQL)
+
+  - id: sqli-string-format-sql
+    languages: [java]
+    severity: ERROR
+    message: >
+      SQL query built with String.format() — equivalent to string concatenation
+      for injection purposes. An attacker controls any %s/%d argument and can
+      break out of the query structure. Use PreparedStatement or named JPA parameters.
+    metadata:
+      cwe: "CWE-89"
+      owasp: "A03:2021"
+      cvss: "8.8"
+      category: security
+
+    patterns:
+      - pattern: |
+          String $SQL = String.format("SELECT ...", ...);
+          ...
+          $STMT.execute($SQL)
+      - pattern: |
+          String $SQL = String.format("SELECT ...", ...);
+          ...
+          $JT.queryForList($SQL)
+
+  - id: sqli-raw-string-variable-query
+    languages: [java]
+    severity: WARNING
+    message: >
+      SQL string built by concatenating a variable. If $VAR originates from
+      HTTP request parameters, headers, or path variables, this is a SQL Injection
+      vulnerability. Trace the data flow to confirm and switch to parameterized queries.
+    metadata:
+      cwe: "CWE-89"
+      owasp: "A03:2021"
+      cvss: "9.8"
+      category: security
+
+    pattern: |
+      String $SQL = "SELECT " + ... + $VAR + ...;

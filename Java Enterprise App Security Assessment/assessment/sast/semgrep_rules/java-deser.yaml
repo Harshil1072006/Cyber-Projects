@@ -1,0 +1,77 @@
+# =============================================================================
+# java-deser.yaml — Semgrep SAST Rule
+# Detects: ObjectInputStream.readObject() without type validation
+#
+# WHY THIS MATTERS:
+#   Java deserialization is one of the most dangerous vulnerability classes.
+#   When an application calls readObject() on untrusted data without validating
+#   the class type first, an attacker can send a crafted serialized payload
+#   using a "gadget chain" (e.g., Apache Commons Collections 3.1) to achieve
+#   Remote Code Execution. This killed Weblogic, JBoss, and Jenkins at scale.
+#
+# WHAT IT CATCHES:
+#   - Any new ObjectInputStream(...) followed by .readObject()
+#   - No allowlist/filter installed before the call
+#   - Covers both direct and chained patterns
+#
+# RUN COMMAND:
+#   semgrep --config assessment/sast/semgrep_rules/java-deser.yaml target-app/src
+# =============================================================================
+
+rules:
+  - id: java-unsafe-deserialization
+    languages: [java]
+    severity: ERROR
+    message: >
+      Unsafe Java deserialization detected: ObjectInputStream.readObject() called without
+      a type validation filter. An attacker who controls the input stream can supply a
+      crafted gadget-chain payload (e.g., Apache Commons Collections) to achieve Remote
+      Code Execution. Install an ObjectInputFilter or use a safe serialization library.
+    metadata:
+      cwe: "CWE-502: Deserialization of Untrusted Data"
+      owasp: "A08:2021 - Software and Data Integrity Failures"
+      cvss: "9.8"
+      references:
+        - https://owasp.org/www-community/vulnerabilities/Deserialization_of_untrusted_data
+        - https://github.com/frohoff/ysoserial
+      category: security
+      technology: [java]
+
+    # Pattern: ObjectInputStream is instantiated and readObject() is called
+    patterns:
+      - pattern: |
+          ObjectInputStream $OIS = new ObjectInputStream(...);
+          ...
+          $OIS.readObject();
+      - pattern: |
+          (new ObjectInputStream(...)).readObject();
+
+  - id: java-unsafe-deserialization-any-stream
+    languages: [java]
+    severity: WARNING
+    message: >
+      Potential unsafe deserialization: .readObject() call detected on a stream variable.
+      Verify this stream processes only trusted, internally-generated data. If external
+      input reaches this, it is a Critical RCE vulnerability.
+    metadata:
+      cwe: "CWE-502"
+      owasp: "A08:2021"
+      category: security
+
+    # Broader pattern: any .readObject() call on any variable
+    pattern: $STREAM.readObject()
+    pattern-not: |
+      # Exclude unit test classes
+      $STREAM.readObject() // safe
+
+  - id: java-classloader-reflection-deser
+    languages: [java]
+    severity: WARNING
+    message: >
+      Reflective class loading combined with deserialization path detected.
+      Class.forName() with user-controlled input enables gadget-chain attacks.
+    metadata:
+      cwe: "CWE-470"
+      category: security
+
+    pattern: Class.forName($USER_INPUT)

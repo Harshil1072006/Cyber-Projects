@@ -1,0 +1,132 @@
+# =============================================================================
+# hardcoded-creds.yaml — Semgrep SAST Rule
+# Detects: Passwords and API keys hardcoded in Java source code
+#
+# WHY THIS MATTERS:
+#   Hardcoded credentials are found in EVERY major breach investigation.
+#   They get committed to git, end up in compiled JARs, and stay there forever.
+#   Git history never forgets — even after removal, the credential exists in
+#   every clone ever made. Real-world examples: Uber (2016), Samsung (2023).
+#
+# WHAT IT CATCHES:
+#   Rule 1: String variable named password/passwd/pwd/secret/apikey/token
+#            assigned a string literal
+#   Rule 2: Field declarations for credential-named variables with literals
+#   Rule 3: @Value annotations with literal values (not ${} placeholders)
+#   Rule 4: Hardcoded basic auth credentials in HTTP client calls
+#   Rule 5: Properties/HashMap with credential keys set to string literals
+#
+# RUN COMMAND:
+#   semgrep --config assessment/sast/semgrep_rules/hardcoded-creds.yaml target-app/src
+# =============================================================================
+
+rules:
+  - id: hardcoded-password-variable
+    languages: [java]
+    severity: ERROR
+    message: >
+      Hardcoded password/secret detected in variable '$VAR'. Credentials must never
+      be stored in source code. Use environment variables (System.getenv("DB_PASSWORD")),
+      Spring @Value("${db.password}") backed by a secrets manager (Vault, AWS Secrets
+      Manager), or at minimum encrypted application properties.
+    metadata:
+      cwe: "CWE-798: Use of Hard-coded Credentials"
+      owasp: "A07:2021 - Identification and Authentication Failures"
+      cvss: "7.5"
+      references:
+        - https://owasp.org/www-community/vulnerabilities/Use_of_hard-coded_password
+        - https://cheatsheetseries.owasp.org/cheatsheets/Secrets_Management_Cheat_Sheet.html
+      category: security
+      technology: [java]
+
+    # Variable name matches credential pattern and is assigned a string literal
+    patterns:
+      - pattern: String $VAR = "$VALUE";
+      - metavariable-regex:
+          metavariable: $VAR
+          regex: (?i)(password|passwd|pwd|secret|secretkey|apikey|api_key|token|authtoken|access_key|private_key|credential)
+      - metavariable-regex:
+          metavariable: $VALUE
+          regex: .{4,}  # At least 4 chars — filters out empty/placeholder strings
+
+  - id: hardcoded-credential-field
+    languages: [java]
+    severity: ERROR
+    message: >
+      Hardcoded credential in class field declaration. Static/instance fields with
+      credential-suggestive names holding string literals are a critical finding.
+      Rotate the exposed credential immediately, then migrate to a secrets manager.
+    metadata:
+      cwe: "CWE-798"
+      owasp: "A07:2021"
+      cvss: "7.5"
+      category: security
+
+    patterns:
+      - pattern: |
+          class $CLASS {
+            ...
+            private static final String $FIELD = "$VALUE";
+            ...
+          }
+      - metavariable-regex:
+          metavariable: $FIELD
+          regex: (?i)(password|passwd|secret|secretkey|apikey|api_key|token|jwt_secret|db_pass)
+      - metavariable-regex:
+          metavariable: $VALUE
+          regex: .{4,}
+
+  - id: hardcoded-spring-value-literal
+    languages: [java]
+    severity: WARNING
+    message: >
+      @Value annotation contains a hardcoded literal instead of a property placeholder.
+      Use @Value("${property.name}") to load from application.properties/environment,
+      never @Value("actual-secret"). The literal will be compiled into the class file.
+    metadata:
+      cwe: "CWE-798"
+      owasp: "A07:2021"
+      cvss: "6.5"
+      category: security
+
+    # @Value with a plain string (not ${...} placeholder)
+    patterns:
+      - pattern: "@Value(\"$LITERAL\") String $FIELD;"
+      - pattern-not: "@Value(\"${...}\") String $FIELD;"
+      - metavariable-regex:
+          metavariable: $FIELD
+          regex: (?i)(password|secret|key|token|credential)
+
+  - id: hardcoded-basic-auth
+    languages: [java]
+    severity: ERROR
+    message: >
+      Hardcoded Basic Authentication credentials detected. The Base64-encoded string
+      contains username:password in plaintext. Anyone who decompiles the JAR or
+      reads the source will obtain these credentials.
+    metadata:
+      cwe: "CWE-798"
+      owasp: "A07:2021"
+      cvss: "7.5"
+      category: security
+
+    # Detects hardcoded Authorization Basic header
+    patterns:
+      - pattern: $CONN.setRequestProperty("Authorization", "Basic " + ...)
+      - pattern: $CLIENT.header("Authorization", "Basic ...")
+
+  - id: hardcoded-db-password-properties
+    languages: [java]
+    severity: ERROR
+    message: >
+      Database password hardcoded in Properties object or HashMap.
+      This credential will be visible in heap dumps and thread dumps.
+      Use a DataSource bean backed by environment variables instead.
+    metadata:
+      cwe: "CWE-798"
+      category: security
+
+    patterns:
+      - pattern: $PROPS.setProperty("password", "$VAL")
+      - pattern: $MAP.put("password", "$VAL")
+      - pattern: $MAP.put("db.password", "$VAL")
