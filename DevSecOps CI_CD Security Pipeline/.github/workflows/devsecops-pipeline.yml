@@ -1,0 +1,190 @@
+name: DevSecOps Pipeline
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  secret-scan:
+    name: 🕵️ Secrets Scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+      - name: Run Trufflehog & Gitleaks
+        run: |
+          python pipeline_stages/secrets/trufflehog_runner.py .
+          python pipeline_stages/secrets/gitleaks_runner.py .
+      - name: Upload SARIF
+        uses: github/codeql-action/upload-sarif@v2
+        if: always()
+        with:
+          sarif_file: findings/
+          category: secrets
+
+  sast:
+    name: 🔍 Static Analysis (SAST)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+      - name: Run Semgrep & SonarQube
+        run: |
+          python pipeline_stages/sast/semgrep_runner.py .
+          python pipeline_stages/sast/sonarqube_runner.py .
+      - name: Upload SARIF
+        uses: github/codeql-action/upload-sarif@v2
+        if: always()
+        with:
+          sarif_file: findings/
+          category: sast
+
+  sca:
+    name: 📦 Software Composition (SCA)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+      - name: Run Trivy & Dependency-Check
+        run: |
+          python pipeline_stages/sca/trivy_runner.py .
+          python pipeline_stages/sca/dependency_check.py .
+          python pipeline_stages/sca/sbom_generator.py .
+      - name: Upload SARIF
+        uses: github/codeql-action/upload-sarif@v2
+        if: always()
+        with:
+          sarif_file: findings/
+          category: sca
+      - name: Upload SBOM
+        uses: actions/upload-artifact@v3
+        with:
+          name: sbom
+          path: findings/sbom.json
+
+  iac-scan:
+    name: 🏗️ Infrastructure as Code (IaC)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+      - name: Run Checkov & Dockerfile Linter
+        run: |
+          python pipeline_stages/iac/checkov_runner.py .
+          python pipeline_stages/iac/dockerfile_linter.py Dockerfile
+      - name: Upload SARIF
+        uses: github/codeql-action/upload-sarif@v2
+        if: always()
+        with:
+          sarif_file: findings/
+          category: iac
+
+  build-and-container-scan:
+    name: 🐳 Container Security
+    needs: [secret-scan, sast, sca, iac-scan]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build Docker Image
+        run: docker build -t finsecure:latest .
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+      - name: Run Container Security Scans
+        run: |
+          python pipeline_stages/container/trivy_image_scanner.py finsecure:latest
+          python pipeline_stages/container/docker_hardening.py finsecure:latest
+      - name: Upload SARIF
+        uses: github/codeql-action/upload-sarif@v2
+        if: always()
+        with:
+          sarif_file: findings/
+          category: container
+
+  dast:
+    name: 🕷️ Dynamic Analysis (DAST)
+    needs: build-and-container-scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Start Target App
+        run: docker-compose up -d finsecure
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+      - name: Run OWASP ZAP
+        run: python pipeline_stages/dast/zap_runner.py http://localhost:8081 /actuator/health
+      - name: Upload SARIF
+        uses: github/codeql-action/upload-sarif@v2
+        if: always()
+        with:
+          sarif_file: findings/
+          category: dast
+
+  security-gate:
+    name: 🚧 Security Gate Validation
+    needs: [secret-scan, sast, sca, iac-scan, build-and-container-scan, dast]
+    runs-on: ubuntu-latest
+    # We use always() so the gate runs even if earlier jobs failed (so it can report all reasons)
+    if: always()
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download all findings
+        uses: actions/download-artifact@v3
+        with:
+          path: findings/
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+      - name: Evaluate Security Gate
+        run: python pipeline_stages/gates/security_gate.py
+      - name: Generate Compliance Report
+        if: always()
+        run: python report/report_generator.py
+      - name: Upload PDF Report
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: Security-Compliance-Report
+          path: report/output/
+      - name: Send Notifications
+        if: always()
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          SMTP_CONFIG: ${{ secrets.SMTP_CONFIG }}
+        run: |
+          python notifications/slack_notifier.py
+          python notifications/email_notifier.py

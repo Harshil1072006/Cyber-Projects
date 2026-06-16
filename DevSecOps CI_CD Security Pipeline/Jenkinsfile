@@ -1,0 +1,113 @@
+pipeline {
+    agent any
+
+    environment {
+        // Vault / Secrets
+        VAULT_ADDR = 'http://vault.internal:8200'
+        SLACK_WEBHOOK_URL = credentials('slack-webhook-url')
+        
+        // SonarQube
+        SONAR_HOST_URL = 'http://sonarqube:9000'
+        
+        // DAST Target
+        FINSECURE_URL = 'http://finsecure:8081'
+    }
+
+    stages {
+        stage('Checkout') {
+            steps {
+                checkout scm
+                // Ensure dependencies are installed for orchestrator
+                sh 'pip install -r requirements.txt'
+            }
+        }
+        
+        stage('Secret Scanning') {
+            steps {
+                echo "Running Trufflehog & Gitleaks..."
+                sh 'python scripts/orchestrator.py --source . --skip-sast --skip-dast --findings-only'
+                // The orchestrator handles actual execution, we just call the runners manually here for demonstration
+                sh 'python pipeline-stages/secrets/trufflehog_runner.py .'
+                sh 'python pipeline-stages/secrets/gitleaks_runner.py .'
+            }
+        }
+        
+        stage('SAST (SonarQube & Semgrep)') {
+            steps {
+                echo "Running SAST..."
+                withSonarQubeEnv('SonarQubeServer') {
+                    sh 'python pipeline-stages/sast/sonarqube_runner.py .'
+                }
+                sh 'python pipeline-stages/sast/semgrep_runner.py .'
+            }
+        }
+        
+        stage('SCA (Dependency-Check & Trivy)') {
+            steps {
+                echo "Running Software Composition Analysis..."
+                sh 'python pipeline-stages/sca/dependency_check.py .'
+                sh 'python pipeline-stages/sca/trivy_runner.py .'
+                sh 'python pipeline-stages/sca/sbom_generator.py .'
+            }
+        }
+        
+        stage('Infrastructure as Code (Checkov)') {
+            steps {
+                echo "Running IaC Scans..."
+                sh 'python pipeline-stages/iac/checkov_runner.py .'
+                sh 'python pipeline-stages/iac/dockerfile_linter.py Dockerfile'
+            }
+        }
+        
+        stage('Container Image Scan') {
+            steps {
+                echo "Building and Scanning Container..."
+                sh 'docker build -t finsecure-api:latest .'
+                sh 'python pipeline-stages/container/trivy_image_scanner.py finsecure-api:latest'
+                sh 'python pipeline-stages/container/docker_hardening.py finsecure-api:latest'
+            }
+        }
+        
+        stage('DAST (OWASP ZAP)') {
+            steps {
+                echo "Waiting for target app to be healthy..."
+                // Assuming target app is deployed to staging
+                sh "python pipeline-stages/dast/zap_runner.py ${FINSECURE_URL} /actuator/health"
+            }
+        }
+        
+        stage('Security Gate') {
+            steps {
+                echo "Evaluating Compliance and Vulnerability Gates..."
+                script {
+                    def gateStatus = sh(script: 'python pipeline-stages/gates/security_gate.py', returnStatus: true)
+                    if (gateStatus != 0) {
+                        currentBuild.result = 'FAILURE'
+                        error("Pipeline blocked by Security Gate. See findings/gate_decision.json")
+                    }
+                }
+            }
+        }
+    }
+    
+    post {
+        always {
+            echo "Generating Compliance Report..."
+            sh 'python report/report_generator.py'
+            
+            archiveArtifacts artifacts: 'findings/*.sarif, findings/*.json, report/output/*', allowEmptyArchive: true
+            
+            // SonarQube analysis
+            // waitForQualityGate abortPipeline: true
+        }
+        success {
+            echo "Pipeline Passed!"
+            sh 'python notifications/slack_notifier.py'
+        }
+        failure {
+            echo "Pipeline Failed!"
+            sh 'python notifications/slack_notifier.py'
+            sh 'python notifications/email_notifier.py'
+        }
+    }
+}

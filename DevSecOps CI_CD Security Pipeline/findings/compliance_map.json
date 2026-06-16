@@ -1,0 +1,116 @@
+{
+  "mappings": {
+    "CWE-89": {
+      "title": "SQL Injection",
+      "owasp": "A03:2021 - Injection",
+      "pci_dss": ["6.2.4 - Injection Attacks", "6.5.1 - Injection Flaws"],
+      "iso_27001": ["A.8.26 - Application Security Requirements"],
+      "soc2": ["CC6.1 - Logical Access Controls", "CC7.2 - System Monitoring"]
+    },
+    "CWE-79": {
+      "title": "Cross-Site Scripting (XSS)",
+      "owasp": "A03:2021 - Injection",
+      "pci_dss": ["6.2.4 - Injection Attacks", "6.5.7 - Cross-Site Scripting"],
+      "iso_27001": ["A.8.26 - Application Security Requirements"],
+      "soc2": ["CC6.1 - Logical Access Controls"]
+    },
+    "CWE-798": {
+      "title": "Hardcoded Credentials",
+      "owasp": "A07:2021 - Identification and Authentication Failures",
+      "pci_dss": ["2.1 - Default Credentials", "3.4 - Render PAN Unreadable", "6.3.2 - Custom Code Review"],
+      "iso_27001": ["A.8.4 - Access to Source Code", "A.5.33 - Protection of Records"],
+      "soc2": ["CC6.1 - Logical Access Controls", "CC6.6 - Encryption Key Management"]
+    },
+    "CWE-502": {
+      "title": "Deserialization of Untrusted Data",
+      "owasp": "A08:2021 - Software and Data Integrity Failures",
+      "pci_dss": ["6.2.4 - Injection Attacks", "6.5.1 - Injection Flaws"],
+      "iso_27001": ["A.8.26 - Application Security Requirements"],
+      "soc2": ["CC7.2 - System Monitoring"]
+    },
+    "CWE-352": {
+      "title": "Cross-Site Request Forgery (CSRF)",
+      "owasp": "A01:2021 - Broken Access Control",
+      "pci_dss": ["6.5.9 - CSRF Prevention"],
+      "iso_27001": ["A.8.26 - Application Security Requirements"],
+      "soc2": ["CC6.1 - Logical Access Controls"]
+    },
+    "CWE-917": {
+      "title": "Expression Language Injection",
+      "owasp": "A03:2021 - Injection",
+      "pci_dss": ["6.2.4 - Injection Attacks"],
+      "iso_27001": ["A.8.26 - Application Security Requirements"],
+      "soc2": ["CC7.2 - System Monitoring"]
+    },
+    "CWE-250": {
+      "title": "Execution with Unnecessary Privileges",
+      "owasp": "A04:2021 - Insecure Design",
+      "pci_dss": ["7.1 - Limit Access", "7.2 - Access Control Systems"],
+      "iso_27001": ["A.8.2 - Privileged Access Rights", "A.8.3 - Information Access Restriction"],
+      "soc2": ["CC6.3 - Role-Based Access"]
+    },
+    "CWE-284": {
+      "title": "Improper Access Control",
+      "owasp": "A01:2021 - Broken Access Control",
+      "pci_dss": ["1.3.1 - DMZ Implementation", "7.1 - Limit Access"],
+      "iso_27001": ["A.8.3 - Information Access Restriction"],
+      "soc2": ["CC6.1 - Logical Access Controls"]
+    },
+    "CWE-787": {
+      "title": "Out-of-bounds Write",
+      "owasp": "A06:2021 - Vulnerable and Outdated Components",
+      "pci_dss": ["6.2 - Security Patches", "6.3.1 - Secure Development"],
+      "iso_27001": ["A.8.8 - Management of Technical Vulnerabilities"],
+      "soc2": ["CC7.1 - Infrastructure Monitoring"]
+    },
+    "CWE-693": {
+      "title": "Protection Mechanism Failure",
+      "owasp": "A05:2021 - Security Misconfiguration",
+      "pci_dss": ["6.5.10 - Broken Authentication"],
+      "iso_27001": ["A.8.26 - Application Security Requirements"],
+      "soc2": ["CC6.1 - Logical Access Controls"]
+    },
+    "CWE-1021": {
+      "title": "Improper Restriction of Rendered UI Layers (Clickjacking)",
+      "owasp": "A05:2021 - Security Misconfiguration",
+      "pci_dss": ["6.5.10 - Broken Authentication"],
+      "iso_27001": ["A.14.1.2 - Securing Application Services"],
+      "soc2": ["CC6.1 - Logical Access Controls"]
+    },
+    "CWE-327": {
+      "title": "Use of a Broken Cryptographic Algorithm",
+      "owasp": "A02:2021 - Cryptographic Failures",
+      "pci_dss": ["4.1 - Strong Cryptography", "6.5.3 - Insecure Cryptographic Storage"],
+      "iso_27001": ["A.8.24 - Use of Cryptography"],
+      "soc2": ["CC6.6 - Encryption Key Management"]
+    },
+    "CWE-611": {
+      "title": "XXE - XML External Entity",
+      "owasp": "A05:2021 - Security Misconfiguration",
+      "pci_dss": ["6.5.1 - Injection Flaws"],
+      "iso_27001": ["A.8.26 - Application Security Requirements"],
+      "soc2": ["CC7.2 - System Monitoring"]
+    },
+    "CWE-918": {
+      "title": "Server-Side Request Forgery (SSRF)",
+      "owasp": "A10:2021 - Server-Side Request Forgery",
+      "pci_dss": ["6.2.4 - Injection Attacks"],
+      "iso_27001": ["A.8.26 - Application Security Requirements"],
+      "soc2": ["CC6.1 - Logical Access Controls"]
+    },
+    "CWE-330": {
+      "title": "Use of Insufficiently Random Values",
+      "owasp": "A02:2021 - Cryptographic Failures",
+      "pci_dss": ["6.5.3 - Insecure Cryptographic Storage"],
+      "iso_27001": ["A.8.24 - Use of Cryptography"],
+      "soc2": ["CC6.6 - Encryption Key Management"]
+    }
+  },
+  "metadata": {
+    "pci_dss_version": "4.0",
+    "iso_27001_version": "2022",
+    "soc2_type": "Type II",
+    "owasp_version": "2021",
+    "last_updated": "2025-01-15"
+  }
+}

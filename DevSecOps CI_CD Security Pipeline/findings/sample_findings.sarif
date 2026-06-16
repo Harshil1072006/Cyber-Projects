@@ -1,0 +1,779 @@
+{
+  "$schema": "https://raw.githubusercontent.com/oasis-tcs/sarif-spec/master/Schemata/sarif-schema-2.1.0.json",
+  "version": "2.1.0",
+  "runs": [
+    {
+      "tool": {
+        "driver": {
+          "name": "SonarQube",
+          "version": "10.4",
+          "informationUri": "https://www.sonarqube.org/",
+          "rules": [
+            {
+              "id": "java:S3649",
+              "shortDescription": { "text": "SQL Injection" },
+              "helpUri": "https://rules.sonarsource.com/java/RSPEC-3649"
+            },
+            {
+              "id": "java:S2068",
+              "shortDescription": { "text": "Hardcoded Credentials" },
+              "helpUri": "https://rules.sonarsource.com/java/RSPEC-2068"
+            }
+          ]
+        }
+      },
+      "results": [
+        {
+          "ruleId": "java:S3649",
+          "level": "error",
+          "message": { "text": "SQL query built from user-controlled input without parameterization. Use PreparedStatement with bind parameters." },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": { "uri": "src/main/java/com/finsecure/controller/AccountController.java" },
+                "region": { "startLine": 47, "startColumn": 12 }
+              }
+            }
+          ],
+          "properties": {
+            "id": "FIND-001",
+            "stage": "SAST",
+            "severity": "CRITICAL",
+            "cwe": "CWE-89",
+            "cvss_score": 9.8,
+            "cvss_vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H",
+            "owasp_category": "A03:2021 - Injection",
+            "compliance": {
+              "pci_dss": ["6.2.4 - Injection Attacks", "6.5.1 - Injection Flaws"],
+              "iso_27001": ["A.8.26 - Application Security Requirements"],
+              "soc2": ["CC6.1 - Logical Access Controls"]
+            },
+            "evidence": "String query = \"SELECT * FROM accounts WHERE id = \" + request.getParameter(\"accountId\");",
+            "remediation": "Replace string concatenation with PreparedStatement: pstmt = conn.prepareStatement(\"SELECT * FROM accounts WHERE id = ?\"); pstmt.setString(1, accountId);",
+            "remediation_effort": "Low",
+            "gate_blocking": true,
+            "status": "Open"
+          }
+        },
+        {
+          "ruleId": "java:S2068",
+          "level": "warning",
+          "message": { "text": "Database password hardcoded in source code. Move to externalized configuration with encryption." },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": { "uri": "src/main/java/com/finsecure/config/DatabaseConfig.java" },
+                "region": { "startLine": 23, "startColumn": 5 }
+              }
+            }
+          ],
+          "properties": {
+            "id": "FIND-002",
+            "stage": "SAST",
+            "severity": "HIGH",
+            "cwe": "CWE-798",
+            "cvss_score": 7.5,
+            "cvss_vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:N/A:N",
+            "owasp_category": "A07:2021 - Identification and Authentication Failures",
+            "compliance": {
+              "pci_dss": ["2.1 - Default Credentials", "3.4 - Render PAN Unreadable"],
+              "iso_27001": ["A.8.4 - Access to Source Code"],
+              "soc2": ["CC6.1 - Logical Access Controls"]
+            },
+            "evidence": "private static final String DB_PASSWORD = \"FinS3cure_Pr0d!\";",
+            "remediation": "Use environment variables or HashiCorp Vault: String dbPassword = System.getenv(\"DB_PASSWORD\");",
+            "remediation_effort": "Low",
+            "gate_blocking": true,
+            "status": "Open"
+          }
+        }
+      ]
+    },
+    {
+      "tool": {
+        "driver": {
+          "name": "Semgrep",
+          "version": "1.55.1",
+          "informationUri": "https://semgrep.dev/",
+          "rules": [
+            {
+              "id": "java.lang.security.audit.unsafe-deserialization",
+              "shortDescription": { "text": "Unsafe Deserialization" }
+            },
+            {
+              "id": "java.spring.security.audit.csrf-disabled",
+              "shortDescription": { "text": "CSRF Protection Disabled" }
+            }
+          ]
+        }
+      },
+      "results": [
+        {
+          "ruleId": "java.lang.security.audit.unsafe-deserialization",
+          "level": "error",
+          "message": { "text": "ObjectInputStream.readObject() called on untrusted data. Deserialization of user-controlled data can lead to Remote Code Execution." },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": { "uri": "src/main/java/com/finsecure/service/TransactionService.java" },
+                "region": { "startLine": 89, "startColumn": 8 }
+              }
+            }
+          ],
+          "properties": {
+            "id": "FIND-003",
+            "stage": "SAST",
+            "severity": "CRITICAL",
+            "cwe": "CWE-502",
+            "cvss_score": 9.8,
+            "cvss_vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H",
+            "owasp_category": "A08:2021 - Software and Data Integrity Failures",
+            "compliance": {
+              "pci_dss": ["6.2.4 - Injection Attacks"],
+              "iso_27001": ["A.8.26 - Application Security Requirements"],
+              "soc2": ["CC7.2 - System Monitoring"]
+            },
+            "evidence": "ObjectInputStream ois = new ObjectInputStream(request.getInputStream()); Object obj = ois.readObject();",
+            "remediation": "Use a safe serialization library like Jackson/Gson for JSON. If Java serialization is required, implement ObjectInputFilter with an allowlist.",
+            "remediation_effort": "Medium",
+            "gate_blocking": true,
+            "status": "Open"
+          }
+        },
+        {
+          "ruleId": "java.spring.security.audit.csrf-disabled",
+          "level": "warning",
+          "message": { "text": "CSRF protection is explicitly disabled in Spring Security configuration. Financial APIs processing transactions must enforce CSRF tokens." },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": { "uri": "src/main/java/com/finsecure/config/SecurityConfig.java" },
+                "region": { "startLine": 35, "startColumn": 16 }
+              }
+            }
+          ],
+          "properties": {
+            "id": "FIND-004",
+            "stage": "SAST",
+            "severity": "HIGH",
+            "cwe": "CWE-352",
+            "cvss_score": 8.1,
+            "cvss_vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:R/S:U/C:H/I:H/A:N",
+            "owasp_category": "A01:2021 - Broken Access Control",
+            "compliance": {
+              "pci_dss": ["6.5.9 - CSRF Prevention"],
+              "iso_27001": ["A.8.26 - Application Security Requirements"],
+              "soc2": ["CC6.1 - Logical Access Controls"]
+            },
+            "evidence": "http.csrf().disable();",
+            "remediation": "Remove .csrf().disable() and configure CsrfTokenRepository: http.csrf().csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse());",
+            "remediation_effort": "Low",
+            "gate_blocking": true,
+            "status": "Open"
+          }
+        }
+      ]
+    },
+    {
+      "tool": {
+        "driver": {
+          "name": "OWASP-Dependency-Check",
+          "version": "9.0.9",
+          "informationUri": "https://owasp.org/www-project-dependency-check/"
+        }
+      },
+      "results": [
+        {
+          "ruleId": "CVE-2019-14379",
+          "level": "error",
+          "message": { "text": "jackson-databind before 2.9.9.2 allows polymorphic deserialization via ehcache. CVSS 9.8 — allows Remote Code Execution." },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": { "uri": "pom.xml" },
+                "region": { "startLine": 52 }
+              }
+            }
+          ],
+          "properties": {
+            "id": "FIND-005",
+            "stage": "SCA",
+            "severity": "CRITICAL",
+            "cve": "CVE-2019-14379",
+            "cvss_score": 9.8,
+            "cvss_vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H",
+            "owasp_category": "A06:2021 - Vulnerable and Outdated Components",
+            "affected_component": "com.fasterxml.jackson.core:jackson-databind:2.9.8",
+            "fix_version": "2.9.9.2",
+            "compliance": {
+              "pci_dss": ["6.2 - Security Patches", "6.3.1 - Secure Development"],
+              "iso_27001": ["A.8.8 - Management of Technical Vulnerabilities"],
+              "soc2": ["CC7.1 - Infrastructure Monitoring"]
+            },
+            "remediation": "Update jackson-databind to >=2.14.0 in pom.xml: <version>2.14.0</version>",
+            "remediation_effort": "Low",
+            "gate_blocking": true,
+            "status": "Open"
+          }
+        },
+        {
+          "ruleId": "CVE-2022-22965",
+          "level": "error",
+          "message": { "text": "Spring Framework RCE via Data Binding on JDK 9+ (Spring4Shell). Allows unauthenticated attackers to execute arbitrary code." },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": { "uri": "pom.xml" },
+                "region": { "startLine": 38 }
+              }
+            }
+          ],
+          "properties": {
+            "id": "FIND-006",
+            "stage": "SCA",
+            "severity": "CRITICAL",
+            "cve": "CVE-2022-22965",
+            "cvss_score": 9.8,
+            "cvss_vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H",
+            "owasp_category": "A06:2021 - Vulnerable and Outdated Components",
+            "affected_component": "org.springframework:spring-beans:5.3.17",
+            "fix_version": "5.3.18",
+            "compliance": {
+              "pci_dss": ["6.2 - Security Patches"],
+              "iso_27001": ["A.8.8 - Management of Technical Vulnerabilities"],
+              "soc2": ["CC7.1 - Infrastructure Monitoring"]
+            },
+            "remediation": "Update Spring Boot to >=2.6.6 or Spring Framework to >=5.3.18",
+            "remediation_effort": "Medium",
+            "gate_blocking": true,
+            "status": "Open"
+          }
+        }
+      ]
+    },
+    {
+      "tool": {
+        "driver": {
+          "name": "Trivy",
+          "version": "0.50.0",
+          "informationUri": "https://trivy.dev/"
+        }
+      },
+      "results": [
+        {
+          "ruleId": "CVE-2021-44228",
+          "level": "error",
+          "message": { "text": "Apache Log4j2 JNDI features do not protect against attacker-controlled LDAP and other JNDI related endpoints. (Log4Shell)" },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": { "uri": "pom.xml" },
+                "region": { "startLine": 67 }
+              }
+            }
+          ],
+          "properties": {
+            "id": "FIND-007",
+            "stage": "SCA",
+            "severity": "CRITICAL",
+            "cve": "CVE-2021-44228",
+            "cwe": "CWE-917",
+            "cvss_score": 10.0,
+            "cvss_vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:C/C:H/I:H/A:H",
+            "owasp_category": "A06:2021 - Vulnerable and Outdated Components",
+            "affected_component": "org.apache.logging.log4j:log4j-core:2.14.1",
+            "fix_version": "2.17.1",
+            "compliance": {
+              "pci_dss": ["6.2 - Security Patches"],
+              "iso_27001": ["A.8.8 - Management of Technical Vulnerabilities"],
+              "soc2": ["CC7.1 - Infrastructure Monitoring"]
+            },
+            "remediation": "Update log4j-core to >=2.17.1. As immediate mitigation, set -Dlog4j2.formatMsgNoLookups=true",
+            "remediation_effort": "Low",
+            "gate_blocking": true,
+            "status": "Open"
+          }
+        },
+        {
+          "ruleId": "CVE-2022-1471",
+          "level": "warning",
+          "message": { "text": "SnakeYAML Constructor allows deserialization of arbitrary Java objects, leading to Remote Code Execution." },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": { "uri": "pom.xml" },
+                "region": { "startLine": 73 }
+              }
+            }
+          ],
+          "properties": {
+            "id": "FIND-008",
+            "stage": "SCA",
+            "severity": "HIGH",
+            "cve": "CVE-2022-1471",
+            "cwe": "CWE-502",
+            "cvss_score": 8.3,
+            "cvss_vector": "CVSS:3.1/AV:N/AC:L/PR:L/UI:N/S:U/C:H/I:H/A:L",
+            "owasp_category": "A06:2021 - Vulnerable and Outdated Components",
+            "affected_component": "org.yaml:snakeyaml:1.30",
+            "fix_version": "2.0",
+            "compliance": {
+              "pci_dss": ["6.2 - Security Patches"],
+              "iso_27001": ["A.8.8 - Management of Technical Vulnerabilities"],
+              "soc2": ["CC7.1 - Infrastructure Monitoring"]
+            },
+            "remediation": "Update snakeyaml to >=2.0 and use SafeConstructor: new Yaml(new SafeConstructor())",
+            "remediation_effort": "Low",
+            "gate_blocking": true,
+            "status": "Open"
+          }
+        }
+      ]
+    },
+    {
+      "tool": {
+        "driver": {
+          "name": "Trufflehog",
+          "version": "3.63.7",
+          "informationUri": "https://github.com/trufflesecurity/trufflehog"
+        }
+      },
+      "results": [
+        {
+          "ruleId": "aws-access-key",
+          "level": "error",
+          "message": { "text": "Verified AWS Access Key found in configuration file. This key has active permissions and can access S3 buckets containing financial data." },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": { "uri": "src/main/resources/aws-config.yml" },
+                "region": { "startLine": 12, "startColumn": 15 }
+              }
+            }
+          ],
+          "properties": {
+            "id": "FIND-009",
+            "stage": "SECRETS",
+            "severity": "CRITICAL",
+            "cwe": "CWE-798",
+            "cvss_score": 9.8,
+            "cvss_vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H",
+            "owasp_category": "A07:2021 - Identification and Authentication Failures",
+            "compliance": {
+              "pci_dss": ["3.4 - Render PAN Unreadable", "6.3.2 - Custom Code Review"],
+              "iso_27001": ["A.8.4 - Access to Source Code", "A.5.33 - Protection of Records"],
+              "soc2": ["CC6.1 - Logical Access Controls", "CC6.6 - Encryption Key Management"]
+            },
+            "evidence": "aws_access_key_id: AKIAIOSFODNN7EXAMPLE",
+            "remediation": "1) Immediately rotate the AWS key in IAM console. 2) Remove from source and add to .gitignore. 3) Use AWS Secrets Manager or env vars.",
+            "remediation_effort": "Low",
+            "gate_blocking": true,
+            "status": "Open"
+          }
+        }
+      ]
+    },
+    {
+      "tool": {
+        "driver": {
+          "name": "Gitleaks",
+          "version": "8.18.2",
+          "informationUri": "https://github.com/gitleaks/gitleaks"
+        }
+      },
+      "results": [
+        {
+          "ruleId": "jwt-secret",
+          "level": "error",
+          "message": { "text": "JWT signing secret hardcoded in source code. Allows attackers to forge authentication tokens for any user account." },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": { "uri": "src/main/java/com/finsecure/security/JwtTokenProvider.java" },
+                "region": { "startLine": 18, "startColumn": 5 }
+              }
+            }
+          ],
+          "properties": {
+            "id": "FIND-010",
+            "stage": "SECRETS",
+            "severity": "CRITICAL",
+            "cwe": "CWE-798",
+            "cvss_score": 9.1,
+            "cvss_vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:N",
+            "owasp_category": "A07:2021 - Identification and Authentication Failures",
+            "compliance": {
+              "pci_dss": ["3.4 - Render PAN Unreadable", "2.1 - Default Credentials"],
+              "iso_27001": ["A.8.4 - Access to Source Code"],
+              "soc2": ["CC6.6 - Encryption Key Management"]
+            },
+            "evidence": "private static final String JWT_SECRET = \"finsecure-jwt-s3cret-k3y-2024!\";",
+            "remediation": "Move JWT secret to environment variable or vault: String secret = vault.getSecret(\"JWT_SECRET\");",
+            "remediation_effort": "Low",
+            "gate_blocking": true,
+            "status": "Open",
+            "commit": "a3f8c2d"
+          }
+        },
+        {
+          "ruleId": "generic-password",
+          "level": "warning",
+          "message": { "text": "Database password found in application.properties file committed to version control." },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": { "uri": "src/main/resources/application.properties" },
+                "region": { "startLine": 7, "startColumn": 27 }
+              }
+            }
+          ],
+          "properties": {
+            "id": "FIND-011",
+            "stage": "SECRETS",
+            "severity": "HIGH",
+            "cwe": "CWE-798",
+            "cvss_score": 7.5,
+            "cvss_vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:N/A:N",
+            "owasp_category": "A07:2021 - Identification and Authentication Failures",
+            "compliance": {
+              "pci_dss": ["2.1 - Default Credentials"],
+              "iso_27001": ["A.8.4 - Access to Source Code"],
+              "soc2": ["CC6.1 - Logical Access Controls"]
+            },
+            "evidence": "spring.datasource.password=Pr0dP@ssw0rd!",
+            "remediation": "Use Spring Cloud Vault or externalize to environment: spring.datasource.password=${DB_PASSWORD}",
+            "remediation_effort": "Low",
+            "gate_blocking": true,
+            "status": "Open",
+            "commit": "b7e1f4a"
+          }
+        }
+      ]
+    },
+    {
+      "tool": {
+        "driver": {
+          "name": "Checkov",
+          "version": "3.2.0",
+          "informationUri": "https://www.checkov.io/"
+        }
+      },
+      "results": [
+        {
+          "ruleId": "CKV_DOCKER_3",
+          "level": "warning",
+          "message": { "text": "Dockerfile does not contain a USER directive. Container runs as root by default, violating principle of least privilege." },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": { "uri": "Dockerfile" },
+                "region": { "startLine": 1 }
+              }
+            }
+          ],
+          "properties": {
+            "id": "FIND-012",
+            "stage": "IAC",
+            "severity": "HIGH",
+            "cwe": "CWE-250",
+            "cvss_score": 7.8,
+            "cvss_vector": "CVSS:3.1/AV:L/AC:L/PR:L/UI:N/S:U/C:H/I:H/A:H",
+            "owasp_category": "A04:2021 - Insecure Design",
+            "compliance": {
+              "pci_dss": ["7.1 - Limit Access", "7.2 - Access Control Systems"],
+              "iso_27001": ["A.8.2 - Privileged Access Rights"],
+              "soc2": ["CC6.3 - Role-Based Access"]
+            },
+            "guideline": "https://docs.bridgecrew.io/docs/ensure-that-a-user-for-the-container-has-been-created",
+            "remediation": "Add USER directive: RUN addgroup --system appgroup && adduser --system appuser --ingroup appgroup && USER appuser",
+            "remediation_effort": "Low",
+            "gate_blocking": true,
+            "status": "Open"
+          }
+        },
+        {
+          "ruleId": "CKV_DOCKER_2",
+          "level": "note",
+          "message": { "text": "Dockerfile does not contain a HEALTHCHECK instruction. Container orchestrators cannot verify application health." },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": { "uri": "Dockerfile" },
+                "region": { "startLine": 1 }
+              }
+            }
+          ],
+          "properties": {
+            "id": "FIND-013",
+            "stage": "IAC",
+            "severity": "MEDIUM",
+            "owasp_category": "A05:2021 - Security Misconfiguration",
+            "compliance": {},
+            "guideline": "https://docs.bridgecrew.io/docs/ensure-that-healthcheck-instructions-have-been-added",
+            "remediation": "Add HEALTHCHECK: HEALTHCHECK --interval=30s --timeout=3s CMD curl -f http://localhost:8080/actuator/health || exit 1",
+            "remediation_effort": "Low",
+            "gate_blocking": false,
+            "status": "Open"
+          }
+        }
+      ]
+    },
+    {
+      "tool": {
+        "driver": {
+          "name": "Dockerfile-Linter",
+          "version": "1.0.0",
+          "informationUri": "https://github.com/your-org/devsecops-pipeline"
+        }
+      },
+      "results": [
+        {
+          "ruleId": "DL-SEC-001",
+          "level": "error",
+          "message": { "text": "Secrets detected in ENV variables. Database password and API key exposed in Docker image layers, recoverable by any user with image access." },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": { "uri": "Dockerfile" },
+                "region": { "startLine": 15 }
+              }
+            }
+          ],
+          "properties": {
+            "id": "FIND-014",
+            "stage": "IAC",
+            "severity": "CRITICAL",
+            "cwe": "CWE-798",
+            "cvss_score": 9.1,
+            "cvss_vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:N",
+            "owasp_category": "A07:2021 - Identification and Authentication Failures",
+            "compliance": {
+              "pci_dss": ["3.4 - Render PAN Unreadable"],
+              "iso_27001": ["A.8.4 - Access to Source Code"],
+              "soc2": ["CC6.6 - Encryption Key Management"]
+            },
+            "evidence": "ENV DB_PASSWORD=Pr0dP@ssw0rd! API_KEY=sk-live-abc123",
+            "remediation": "Use Docker secrets or runtime env vars instead of baking secrets into ENV: docker run -e DB_PASSWORD=$DB_PASSWORD ...",
+            "remediation_effort": "Low",
+            "gate_blocking": true,
+            "status": "Open"
+          }
+        },
+        {
+          "ruleId": "DL-SEC-003",
+          "level": "note",
+          "message": { "text": "Port 3306 (MySQL) exposed directly. Database ports should not be exposed in production containers." },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": { "uri": "Dockerfile" },
+                "region": { "startLine": 22 }
+              }
+            }
+          ],
+          "properties": {
+            "id": "FIND-015",
+            "stage": "IAC",
+            "severity": "MEDIUM",
+            "cwe": "CWE-284",
+            "cvss_score": 5.3,
+            "cvss_vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:L/I:N/A:N",
+            "owasp_category": "A01:2021 - Broken Access Control",
+            "compliance": {
+              "pci_dss": ["1.3.1 - DMZ Implementation"],
+              "iso_27001": ["A.8.3 - Information Access Restriction"],
+              "soc2": ["CC6.1 - Logical Access Controls"]
+            },
+            "remediation": "Remove EXPOSE 3306. Use Docker networking for inter-service communication instead of port exposure.",
+            "remediation_effort": "Low",
+            "gate_blocking": false,
+            "status": "Open"
+          }
+        }
+      ]
+    },
+    {
+      "tool": {
+        "driver": {
+          "name": "Trivy-Image",
+          "version": "0.50.0",
+          "informationUri": "https://trivy.dev/"
+        }
+      },
+      "results": [
+        {
+          "ruleId": "CVE-2023-44487",
+          "level": "error",
+          "message": { "text": "HTTP/2 Rapid Reset Attack in base image. Allows denial of service against any HTTP/2 enabled server." },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": { "uri": "Dockerfile" },
+                "region": { "startLine": 1 }
+              }
+            }
+          ],
+          "properties": {
+            "id": "FIND-016",
+            "stage": "CONTAINER",
+            "severity": "CRITICAL",
+            "cve": "CVE-2023-44487",
+            "cvss_score": 7.5,
+            "cvss_vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H",
+            "owasp_category": "A06:2021 - Vulnerable and Outdated Components",
+            "affected_component": "nghttp2:1.43.0-r0 (alpine 3.16)",
+            "fix_version": "1.57.0-r0",
+            "compliance": {
+              "pci_dss": ["6.2 - Security Patches"],
+              "iso_27001": ["A.8.8 - Management of Technical Vulnerabilities"],
+              "soc2": ["CC7.1 - Infrastructure Monitoring"]
+            },
+            "remediation": "Upgrade base image to alpine:3.19 or rebuild with updated packages: RUN apk upgrade --no-cache",
+            "remediation_effort": "Low",
+            "gate_blocking": true,
+            "status": "Open"
+          }
+        },
+        {
+          "ruleId": "CVE-2023-38545",
+          "level": "warning",
+          "message": { "text": "curl SOCKS5 heap buffer overflow. Exploitable when connecting via SOCKS5 proxy with a long hostname." },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": { "uri": "Dockerfile" },
+                "region": { "startLine": 1 }
+              }
+            }
+          ],
+          "properties": {
+            "id": "FIND-017",
+            "stage": "CONTAINER",
+            "severity": "HIGH",
+            "cve": "CVE-2023-38545",
+            "cwe": "CWE-787",
+            "cvss_score": 7.5,
+            "cvss_vector": "CVSS:3.1/AV:N/AC:H/PR:N/UI:R/S:U/C:H/I:H/A:H",
+            "owasp_category": "A06:2021 - Vulnerable and Outdated Components",
+            "affected_component": "curl:8.1.2-r0 (alpine 3.16)",
+            "fix_version": "8.4.0-r0",
+            "compliance": {
+              "pci_dss": ["6.2 - Security Patches"],
+              "iso_27001": ["A.8.8 - Management of Technical Vulnerabilities"],
+              "soc2": ["CC7.1 - Infrastructure Monitoring"]
+            },
+            "remediation": "Update curl package: RUN apk upgrade curl --no-cache",
+            "remediation_effort": "Low",
+            "gate_blocking": true,
+            "status": "Open"
+          }
+        }
+      ]
+    },
+    {
+      "tool": {
+        "driver": {
+          "name": "OWASP-ZAP",
+          "version": "2.14.0",
+          "informationUri": "https://www.zaproxy.org/"
+        }
+      },
+      "results": [
+        {
+          "ruleId": "40018",
+          "level": "warning",
+          "message": { "text": "SQL Injection detected via login form. The login endpoint does not sanitize the 'username' parameter, allowing UNION-based injection." },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": { "uri": "https://finsecure:8081/api/auth/login" },
+                "region": { "startLine": 0 }
+              }
+            }
+          ],
+          "properties": {
+            "id": "FIND-018",
+            "stage": "DAST",
+            "severity": "HIGH",
+            "cwe": "CWE-89",
+            "cvss_score": 8.6,
+            "cvss_vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:L/A:L",
+            "owasp_category": "A03:2021 - Injection",
+            "compliance": {
+              "pci_dss": ["6.2.4 - Injection Attacks", "6.5.1 - Injection Flaws"],
+              "iso_27001": ["A.8.26 - Application Security Requirements"],
+              "soc2": ["CC6.1 - Logical Access Controls"]
+            },
+            "evidence": "Parameter: username, Attack: admin' UNION SELECT 1,2,3--",
+            "remediation": "Use parameterized queries in the authentication controller. Validate and sanitize all input parameters.",
+            "remediation_effort": "Medium",
+            "gate_blocking": true,
+            "status": "Open"
+          }
+        },
+        {
+          "ruleId": "10038",
+          "level": "note",
+          "message": { "text": "Content-Security-Policy header is not set. This allows potential XSS attacks via inline scripts and third-party resource loading." },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": { "uri": "https://finsecure:8081/" },
+                "region": { "startLine": 0 }
+              }
+            }
+          ],
+          "properties": {
+            "id": "FIND-019",
+            "stage": "DAST",
+            "severity": "MEDIUM",
+            "cwe": "CWE-693",
+            "cvss_score": 5.3,
+            "cvss_vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:L/I:N/A:N",
+            "owasp_category": "A05:2021 - Security Misconfiguration",
+            "compliance": {
+              "pci_dss": ["6.5.10 - Broken Authentication"],
+              "iso_27001": ["A.8.26 - Application Security Requirements"],
+              "soc2": ["CC6.1 - Logical Access Controls"]
+            },
+            "remediation": "Add CSP header: Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline';",
+            "remediation_effort": "Low",
+            "gate_blocking": false,
+            "status": "Open"
+          }
+        },
+        {
+          "ruleId": "10020",
+          "level": "note",
+          "message": { "text": "X-Frame-Options header is not set. Application is vulnerable to clickjacking attacks where financial forms could be embedded in malicious iframes." },
+          "locations": [
+            {
+              "physicalLocation": {
+                "artifactLocation": { "uri": "https://finsecure:8081/" },
+                "region": { "startLine": 0 }
+              }
+            }
+          ],
+          "properties": {
+            "id": "FIND-020",
+            "stage": "DAST",
+            "severity": "LOW",
+            "cwe": "CWE-1021",
+            "cvss_score": 4.3,
+            "cvss_vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:R/S:U/C:N/I:L/A:N",
+            "owasp_category": "A05:2021 - Security Misconfiguration",
+            "compliance": {
+              "pci_dss": ["6.5.10 - Broken Authentication"],
+              "iso_27001": ["A.14.1.2 - Securing Application Services"],
+              "soc2": ["CC6.1 - Logical Access Controls"]
+            },
+            "remediation": "Add X-Frame-Options: DENY header in Spring Security: http.headers().frameOptions().deny();",
+            "remediation_effort": "Low",
+            "gate_blocking": false,
+            "status": "Open"
+          }
+        }
+      ]
+    }
+  ]
+}

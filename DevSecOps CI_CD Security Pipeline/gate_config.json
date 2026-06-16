@@ -1,0 +1,47 @@
+{
+  "gates": {
+    "block_on_critical": true,
+    "block_on_high_count": 10,
+    "block_on_cvss_above": 9.0,
+    "block_on_secrets": true,
+    "block_on_iac_critical": true,
+    "exempt_rules": [],
+    "fail_fast_on_secrets": true
+  },
+  "compliance": {
+    "enforce_pci_dss": true,
+    "enforce_iso_27001": true,
+    "enforce_soc2": true,
+    "block_on_compliance_violation": true,
+    "pci_dss_version": "4.0",
+    "iso_27001_version": "2022",
+    "soc2_type": "Type II"
+  },
+  "secrets_provider": "env",
+  "vault_config": {
+    "address": "${VAULT_ADDR}",
+    "token_env": "VAULT_TOKEN",
+    "secret_path": "secret/data/devsecops-pipeline",
+    "mount_point": "secret"
+  },
+  "notifications": {
+    "slack_webhook_secret_key": "SLACK_WEBHOOK_URL",
+    "email_smtp_secret_key": "SMTP_CONFIG",
+    "notify_on_pass": false,
+    "notify_on_fail": true,
+    "notify_on_warning": true
+  },
+  "report": {
+    "retention_days": 30,
+    "generate_pdf": true,
+    "include_executive_summary": true,
+    "include_compliance_heatmap": true
+  },
+  "scan_config": {
+    "dast_target_health_endpoint": "/actuator/health",
+    "dast_health_timeout_seconds": 120,
+    "dast_health_poll_interval_seconds": 5,
+    "sonarqube_poll_interval_seconds": 10,
+    "sonarqube_poll_timeout_seconds": 300
+  }
+}

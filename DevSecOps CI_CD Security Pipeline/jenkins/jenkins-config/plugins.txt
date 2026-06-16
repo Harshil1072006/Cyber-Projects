@@ -1,0 +1,7 @@
+pipeline-stage-view
+docker-workflow
+htmlpublisher
+slack
+email-ext
+credentials-binding
+warnings-ng

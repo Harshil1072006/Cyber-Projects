@@ -1,52 +1,25 @@
-# Security-focused .gitignore for DevSecOps Pipeline
-
-# ─── NEVER commit these ──────────────────────────────────────
-.env
-.env.*
-!.env.example
-*.key
-*.pem
-*.p12
-*.pfx
-*.cer
-*.crt
-secrets.yaml
-secrets.json
-*secret*
-*password*
-*credential*
-
-# ─── Security Report Outputs ─────────────────────────────────
-security-reports/
-*.sarif
-*.sbom
-sbom.json
-trivy-*.txt
-trivy-*.json
-bandit*.json
-semgrep*.json
-nuclei-results.*
-zap-report.*
-
-# ─── Python ──────────────────────────────────────────────────
+# Byte-compiled / optimized / DLL files
 __pycache__/
-*.pyc
-*.pyo
-.venv/
+*.py[cod]
+*$py.class
+
+# Findings and Reports
+findings/*.sarif
+!findings/sample_findings.sarif
+findings/*.json
+!findings/compliance_map.json
+report/output/
+*.pdf
+
+# Python Virtual Environment
 venv/
-env/
+.env
 
-# ─── Node / JS ───────────────────────────────────────────────
-node_modules/
-dist/
-.next/
-
-# ─── OS & Editor ─────────────────────────────────────────────
-.DS_Store
-Thumbs.db
-.vscode/
+# IDEs
 .idea/
+.vscode/
 
-# ─── Docker ──────────────────────────────────────────────────
-.dockerignore
-docker-compose.override.yml
+# Build artifacts
+build/
+dist/
+*.egg-info/
