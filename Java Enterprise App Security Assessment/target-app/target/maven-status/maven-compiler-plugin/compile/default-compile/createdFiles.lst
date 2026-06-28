@@ -1,0 +1,12 @@
+com\finsecure\repository\UserRepository.class
+com\finsecure\security\JwtFilter.class
+com\finsecure\model\Account.class
+com\finsecure\model\User.class
+com\finsecure\exception\GlobalExceptionHandler.class
+com\finsecure\controller\AccountController.class
+com\finsecure\security\SecurityConfig.class
+com\finsecure\controller\AuthController.class
+com\finsecure\DataSeeder.class
+com\finsecure\FinSecureApplication.class
+com\finsecure\repository\AccountRepository.class
+com\finsecure\controller\UtilController.class

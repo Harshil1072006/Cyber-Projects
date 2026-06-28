@@ -1,0 +1,25 @@
+target:
+  url: "http://localhost:8080"
+  api_base_path: "/api/v1"
+  swagger_url: "http://localhost:8080/v3/api-docs"
+  source_dir: "./sample_app/src"
+
+auth:
+  type: "bearer"
+  token: "eyJhbGciOiJIUzI1NiIsInR5cCI..."
+  # oauth_token_url: "https://auth.example.com/oauth2/token"
+  # client_id: "test_client"
+
+scan:
+  run_sast: true
+  run_sca: true
+  run_dast: true
+  max_depth: 3
+  timeout: 30
+  threads: 5
+  semgrep_rules: "config/semgrep_rules.yaml"
+
+report:
+  format: "all"
+  output_dir: "reports"
+  executive_summary: true

@@ -1,25 +1,12 @@
-# Java / Maven
-target/
-*.class
-*.jar
-*.war
-*.ear
-
-# Python
 __pycache__/
 *.py[cod]
 *$py.class
+.env
 venv/
 env/
-.env
-
-# IDE / OS
-.idea/
-.vscode/
-*.swp
-.DS_Store
-
-# Assessment output (optional: keep if you want to show the results in repo)
-# findings/*.json
-# findings/*.xml
-report/output/
+.pytest_cache/
+.coverage
+htmlcov/
+reports/
+semgrep_results.json
+*.pdf

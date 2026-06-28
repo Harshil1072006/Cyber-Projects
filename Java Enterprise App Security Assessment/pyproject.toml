@@ -1,0 +1,21 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "java_security_assessment"
+version = "1.0.0"
+description = "Java Enterprise App Security Assessment tool"
+authors = [
+    {name = "Security Team"}
+]
+dependencies = [
+    "requests",
+    "pyyaml",
+    "jinja2",
+    "weasyprint",
+    "pydantic",
+    "semgrep",
+    "click",
+    "rich"
+]

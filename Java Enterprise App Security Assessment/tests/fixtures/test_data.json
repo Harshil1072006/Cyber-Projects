@@ -1,0 +1,9 @@
+{
+    "test_cases": [
+        {
+            "id": 1,
+            "description": "Basic SQL injection test",
+            "expected_findings": 1
+        }
+    ]
+}

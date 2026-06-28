@@ -1,0 +1,125 @@
+rules:
+  # SQL Injection via string concatenation
+  - id: java.lang.security.audit.sqli-string-concatenation
+    patterns:
+      - pattern-either:
+          - pattern: |
+              String $SQL = "... " + $VAR + " ...";
+              ...
+              $STMT.executeQuery($SQL);
+          - pattern: |
+              $STMT.execute(String.format("... %s ...", $VAR));
+    message: "Potential SQL injection. Use PreparedStatement with parameterized queries."
+    severity: ERROR
+    languages:
+      - java
+    metadata:
+      cwe: "CWE-89"
+      cvss_score: "9.8"
+      cvss_vector: "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:H/I:H/A:H"
+      vulnerability_type: "SQL Injection"
+      remediation: "Use PreparedStatement binding '?' parameters instead of concatenating strings."
+
+  # Insecure Deserialization (ObjectInputStream)
+  - id: java.lang.security.audit.insecure-deserialization
+    patterns:
+      - pattern: |
+          new ObjectInputStream($STREAM).readObject();
+    message: "Insecure deserialization using ObjectInputStream. Unsafe deserialization can lead to RCE."
+    severity: ERROR
+    languages:
+      - java
+    metadata:
+      cwe: "CWE-502"
+      cvss_score: "9.8"
+      vulnerability_type: "Insecure Deserialization"
+      remediation: "Avoid native Java serialization. Use JSON/XML with safe parsers like Jackson/Gson, or implement ValidatingObjectInputStream."
+
+  # XXE via DocumentBuilderFactory
+  - id: java.lang.security.audit.xxe-documentbuilderfactory
+    patterns:
+      - pattern: |
+          DocumentBuilderFactory $FACTORY = DocumentBuilderFactory.newInstance();
+          ...
+          $FACTORY.newDocumentBuilder().parse(...);
+      - pattern-not-inside: |
+          $FACTORY.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
+          ...
+          $FACTORY.newDocumentBuilder().parse(...);
+    message: "XML External Entity (XXE) vulnerability. DocumentBuilderFactory is not configured to disallow DTDs."
+    severity: ERROR
+    languages:
+      - java
+    metadata:
+      cwe: "CWE-611"
+      cvss_score: "8.6"
+      vulnerability_type: "XML External Entity (XXE)"
+      remediation: "Disable DTD processing: factory.setFeature(\"http://apache.org/xml/features/disallow-doctype-decl\", true);"
+
+  # Hardcoded Credentials
+  - id: java.lang.security.audit.hardcoded-credentials
+    patterns:
+      - pattern-either:
+          - pattern: String password = "..."
+          - pattern: String secretKey = "..."
+          - pattern: String apiKey = "..."
+          - pattern: setPassword("...")
+      - pattern-not: String password = ""
+      - pattern-not: String password = null
+    message: "Hardcoded credentials detected. Store secrets securely in environment variables or a vault."
+    severity: WARNING
+    languages:
+      - java
+    metadata:
+      cwe: "CWE-798"
+      cvss_score: "7.5"
+      vulnerability_type: "Hardcoded Credentials"
+      remediation: "Remove the hardcoded secret and load it dynamically from config, ENV, or a secrets manager."
+
+  # Insecure Random Number Generator
+  - id: java.lang.security.audit.insecure-random
+    patterns:
+      - pattern: new java.util.Random(...)
+      - pattern-not: new java.security.SecureRandom(...)
+    message: "Use of insecure random number generator (java.util.Random). Use SecureRandom for security-sensitive operations."
+    severity: WARNING
+    languages:
+      - java
+    metadata:
+      cwe: "CWE-338"
+      cvss_score: "5.3"
+      vulnerability_type: "Insecure Randomness"
+      remediation: "Replace java.util.Random with java.security.SecureRandom."
+
+  # LDAP Injection
+  - id: java.lang.security.audit.ldap-injection
+    patterns:
+      - pattern: |
+          String $FILTER = "... " + $VAR + " ...";
+          ...
+          $DIR_CTX.search($BASE, $FILTER, $CONTROLS);
+    message: "Potential LDAP injection via string concatenation in search filter."
+    severity: ERROR
+    languages:
+      - java
+    metadata:
+      cwe: "CWE-90"
+      cvss_score: "8.1"
+      vulnerability_type: "LDAP Injection"
+      remediation: "Escape user input before placing it inside an LDAP search filter."
+
+  # Weak Cryptography (MD5/SHA1)
+  - id: java.lang.security.audit.weak-crypto
+    patterns:
+      - pattern-either:
+          - pattern: MessageDigest.getInstance("MD5")
+          - pattern: MessageDigest.getInstance("SHA-1")
+    message: "Use of weak cryptographic hash function (MD5/SHA-1)."
+    severity: WARNING
+    languages:
+      - java
+    metadata:
+      cwe: "CWE-328"
+      cvss_score: "5.9"
+      vulnerability_type: "Weak Cryptography"
+      remediation: "Use strong hashing algorithms like SHA-256, SHA-3, or Argon2 for passwords."

@@ -1,0 +1,8 @@
+requests
+pyyaml
+jinja2
+weasyprint
+pydantic
+semgrep
+click
+rich

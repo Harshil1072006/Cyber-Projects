@@ -1,0 +1,15 @@
+Metadata-Version: 2.4
+Name: java_security_assessment
+Version: 1.0.0
+Summary: Java Enterprise App Security Assessment tool
+Author: Security Team
+License-File: LICENSE
+Requires-Dist: requests
+Requires-Dist: pyyaml
+Requires-Dist: jinja2
+Requires-Dist: weasyprint
+Requires-Dist: pydantic
+Requires-Dist: semgrep
+Requires-Dist: click
+Requires-Dist: rich
+Dynamic: license-file
