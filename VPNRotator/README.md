@@ -68,8 +68,8 @@ This tool connects your computer to a free VPN server and **automatically switch
 ### Step 3 — Get the Source Code
 
 ```powershell
-git clone https://github.com/harshil1072006/vpnrotator.git
-cd vpnrotator
+git clone https://github.com/Harshil1072006/Cyber-Projects.git
+cd Cyber-Projects/VPNRotator
 ```
 
 Or download the ZIP from GitHub → **Code → Download ZIP**, then extract it.
