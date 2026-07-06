@@ -1,6 +1,6 @@
 {
   "tool": "semgrep",
-  "timestamp": "2026-06-14T13:07:30.423246Z",
+  "timestamp": "2026-07-06T04:44:06.487485Z",
   "rules_used": [
     "java-deser.yaml",
     "jwt-misconfig.yaml",

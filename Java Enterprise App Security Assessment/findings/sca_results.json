@@ -1,0 +1,39 @@
+{
+  "tool": "owasp-dependency-check",
+  "timestamp": "2026-07-06T06:19:00.927510Z",
+  "total": 4,
+  "findings": [
+    {
+      "cve_id": "CVE-2022-42003",
+      "library": "jackson-databind-2.13.2.jar",
+      "cvss": 7.5,
+      "severity": "HIGH",
+      "fix_version": "jackson-databind 2.13.4.2+",
+      "description": "In FasterXML jackson-databind before 2.13.4.2, resource exhaustion           can occur because of a lack of a check in primitive array deserializers to avoid           deep wrapper array nesting, when the UNWRAP_SINGLE_VALUE_ARRAYS feature is enabled."
+    },
+    {
+      "cve_id": "CVE-2022-42004",
+      "library": "jackson-databind-2.13.2.jar",
+      "cvss": 7.5,
+      "severity": "HIGH",
+      "fix_version": "jackson-databind 2.13.4.2+",
+      "description": "In FasterXML jackson-databind before 2.13.4.2, resource exhaustion           can occur in BeanDeserializer._deserializeFromArray."
+    },
+    {
+      "cve_id": "CVE-2015-6420",
+      "library": "commons-collections-3.1.jar",
+      "cvss": 7.5,
+      "severity": "HIGH",
+      "fix_version": "commons-collections 3.2.2+",
+      "description": "Serialized-object interfaces in Apache Commons Collections before 3.2.2           allow remote attackers to execute arbitrary commands via a crafted serialized Java object           using the CommonsCollections gadget chain (ysoserial)."
+    },
+    {
+      "cve_id": "CVE-2022-22965",
+      "library": "spring-webmvc-5.3.15.jar",
+      "cvss": 9.8,
+      "severity": "CRITICAL",
+      "fix_version": "spring-boot-starter-parent 2.6.6+",
+      "description": "A Spring MVC or Spring WebFlux application running on JDK 9+ may be           vulnerable to remote code execution (RCE) via data binding. Known as Spring4Shell."
+    }
+  ]
+}

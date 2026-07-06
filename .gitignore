@@ -25,6 +25,22 @@ vapt_v1/venv/
 .DS_Store
 Thumbs.db
 
-# Java files
-*.java
-*.class
+# Java files (specific)
+Amount.class
+bla.class
+bla.java
+ble.class
+ble.java
+blee.class
+Blee.java
+computer.class
+Dog.class
+hello.class
+hello.java
+Password.class
+tempCodeRunnerFile.java
+TestDogs.class
+TestDogs.java
+vali.class
+vali$bla.class
+vali$Money.class

@@ -18,6 +18,7 @@ import subprocess
 import sys
 from datetime import datetime
 from pathlib import Path
+from packaging.version import Version, InvalidVersion
 
 from rich.console import Console
 from rich.panel import Panel
@@ -27,12 +28,21 @@ from rich.progress import Progress, SpinnerColumn, TextColumn
 
 console = Console()
 
-# Known vulnerable components in FinSecure (for flagging in SBOM output)
+# Known vulnerable components: name -> list of {fix_version, cves, fix}
+# A component is ONLY flagged if its actual version is strictly BELOW fix_version.
 KNOWN_VULN = {
-    "jackson-databind": {"version": "2.13.2", "cves": ["CVE-2022-42003", "CVE-2022-42004"], "fix": "2.13.4.2"},
-    "commons-collections": {"version": "3.1",   "cves": ["CVE-2015-6420"],                   "fix": "3.2.2"},
-    "spring-webmvc":       {"version": "5.3.15", "cves": ["CVE-2022-22965"],                  "fix": "5.3.18"},
-    "spring-web":          {"version": "5.3.15", "cves": ["CVE-2022-22965"],                  "fix": "5.3.18"},
+    "jackson-databind": [
+        {"fix_version": "2.13.4.2", "cves": ["CVE-2022-42003", "CVE-2022-42004"], "fix": "2.13.4.2"},
+    ],
+    "commons-collections": [
+        {"fix_version": "3.2.2",   "cves": ["CVE-2015-6420"],                     "fix": "3.2.2"},
+    ],
+    "spring-webmvc": [
+        {"fix_version": "5.3.18",  "cves": ["CVE-2022-22965"],                    "fix": "5.3.18"},
+    ],
+    "spring-web": [
+        {"fix_version": "5.3.18",  "cves": ["CVE-2022-22965"],                    "fix": "5.3.18"},
+    ],
 }
 
 # Embedded sample CycloneDX 1.4 SBOM (JSON format)
@@ -93,7 +103,7 @@ def run_syft(target: str, fmt: str, output_file: str) -> dict | None:
     console.print(f"[cyan]syft {target} --output spdx-json=findings/sbom.spdx.json[/cyan]\n")
 
     try:
-        result = subprocess.run(cmd, capture_output=True, text=True, timeout=120)
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=600)
         if result.returncode != 0:
             console.print(f"[red]Syft failed: {result.stderr[:300]}[/red]")
             return None
@@ -112,7 +122,12 @@ def run_syft(target: str, fmt: str, output_file: str) -> dict | None:
 
 
 def analyze_components(sbom: dict) -> tuple[list[dict], list[dict]]:
-    """Split components into vulnerable and clean lists."""
+    """Split components into vulnerable and clean lists.
+
+    A component is only flagged if its ACTUAL version is below the known
+    fix version — not just because the library name matches.
+    This prevents false positives on patched/upgraded versions.
+    """
     components = sbom.get("components", [])
     vulnerable = []
     clean = []
@@ -122,14 +137,29 @@ def analyze_components(sbom: dict) -> tuple[list[dict], list[dict]]:
         version = comp.get("version", "")
         purl    = comp.get("purl", "")
 
-        vuln_info = KNOWN_VULN.get(name)
-        if vuln_info:
+        vuln_rules = KNOWN_VULN.get(name)
+        matched_cves = []
+        matched_fix  = None
+
+        if vuln_rules:
+            try:
+                actual = Version(version)
+                for rule in vuln_rules:
+                    fix_ver = Version(rule["fix_version"])
+                    if actual < fix_ver:
+                        matched_cves.extend(rule["cves"])
+                        matched_fix = rule["fix"]
+            except InvalidVersion:
+                # If version can't be parsed, skip rather than false-positive
+                pass
+
+        if matched_cves:
             vulnerable.append({
                 "name":    name,
                 "version": version,
                 "purl":    purl,
-                "cves":    vuln_info["cves"],
-                "fix":     vuln_info["fix"],
+                "cves":    matched_cves,
+                "fix":     matched_fix,
             })
         else:
             clean.append({"name": name, "version": version, "purl": purl})

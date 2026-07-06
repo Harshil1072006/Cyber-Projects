@@ -133,7 +133,7 @@ def run_semgrep(source_path: str, rules_path: str) -> list[dict]:
     console.print(f"[dim]Running:[/dim] [cyan]{' '.join(cmd)}[/cyan]")
 
     try:
-        result = subprocess.run(cmd, capture_output=True, text=True, timeout=120)
+        result = subprocess.run(cmd, capture_output=True, text=True, timeout=600)
         raw = json.loads(result.stdout)
     except FileNotFoundError:
         console.print("[bold red]✗ Semgrep not found.[/bold red] Install with: pip install semgrep")

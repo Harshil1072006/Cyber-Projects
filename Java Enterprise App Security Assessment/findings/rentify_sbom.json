@@ -1,0 +1,113 @@
+{
+  "bomFormat": "CycloneDX",
+  "specVersion": "1.4",
+  "serialNumber": "urn:uuid:finsecure-sbom-demo-001",
+  "version": 1,
+  "metadata": {
+    "timestamp": "2026-06-14T12:00:00Z",
+    "tools": [
+      {
+        "vendor": "Anchore",
+        "name": "syft",
+        "version": "1.0.0"
+      }
+    ],
+    "component": {
+      "type": "application",
+      "name": "finsecure-api",
+      "version": "1.0.0"
+    }
+  },
+  "components": [
+    {
+      "type": "library",
+      "name": "jackson-databind",
+      "version": "2.13.2",
+      "purl": "pkg:maven/com.fasterxml.jackson.core/jackson-databind@2.13.2"
+    },
+    {
+      "type": "library",
+      "name": "commons-collections",
+      "version": "3.1",
+      "purl": "pkg:maven/commons-collections/commons-collections@3.1"
+    },
+    {
+      "type": "library",
+      "name": "spring-webmvc",
+      "version": "5.3.15",
+      "purl": "pkg:maven/org.springframework/spring-webmvc@5.3.15"
+    },
+    {
+      "type": "library",
+      "name": "spring-web",
+      "version": "5.3.15",
+      "purl": "pkg:maven/org.springframework/spring-web@5.3.15"
+    },
+    {
+      "type": "library",
+      "name": "spring-security-core",
+      "version": "5.6.3",
+      "purl": "pkg:maven/org.springframework.security/spring-security-core@5.6.3"
+    },
+    {
+      "type": "library",
+      "name": "jjwt",
+      "version": "0.9.1",
+      "purl": "pkg:maven/io.jsonwebtoken/jjwt@0.9.1"
+    },
+    {
+      "type": "library",
+      "name": "h2",
+      "version": "2.1.210",
+      "purl": "pkg:maven/com.h2database/h2@2.1.210"
+    },
+    {
+      "type": "library",
+      "name": "hibernate-core",
+      "version": "5.6.5",
+      "purl": "pkg:maven/org.hibernate/hibernate-core@5.6.5"
+    },
+    {
+      "type": "library",
+      "name": "tomcat-embed-core",
+      "version": "9.0.57",
+      "purl": "pkg:maven/org.apache.tomcat.embed/tomcat-embed-core@9.0.57"
+    },
+    {
+      "type": "library",
+      "name": "logback-classic",
+      "version": "1.2.10",
+      "purl": "pkg:maven/ch.qos.logback/logback-classic@1.2.10"
+    },
+    {
+      "type": "library",
+      "name": "slf4j-api",
+      "version": "1.7.36",
+      "purl": "pkg:maven/org.slf4j/slf4j-api@1.7.36"
+    },
+    {
+      "type": "library",
+      "name": "jackson-core",
+      "version": "2.13.2",
+      "purl": "pkg:maven/com.fasterxml.jackson.core/jackson-core@2.13.2"
+    },
+    {
+      "type": "library",
+      "name": "spring-boot",
+      "version": "2.6.3",
+      "purl": "pkg:maven/org.springframework.boot/spring-boot@2.6.3"
+    },
+    {
+      "type": "library",
+      "name": "spring-context",
+      "version": "5.3.15",
+      "purl": "pkg:maven/org.springframework/spring-context@5.3.15"
+    },
+    {
+      "type": "library",
+      "name": "spring-data-jpa",
+      "version": "2.6.1",
+      "purl": "pkg:maven/org.springframework.data/spring-data-jpa@2.6.1"
+    }
+  ]
+}

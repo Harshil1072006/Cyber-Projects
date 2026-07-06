@@ -332,8 +332,8 @@ def main():
         if xml_path:
             xml_data = xml_path
         else:
-            console.print("[yellow]Falling back to --demo mode[/yellow]")
-            xml_data = SAMPLE_XML
+            console.print("[red]Aborting because Dependency-Check failed to run. Please install it or fix the error above.[/red]")
+            sys.exit(1)
 
     findings = parse_xml_report(xml_data)
 
