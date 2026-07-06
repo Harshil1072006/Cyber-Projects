@@ -3,10 +3,9 @@ package vpn
 import (
 	"fmt"
 	"log"
+	"net"
 	"os/exec"
 	"time"
-
-	"github.com/NordSecurity/gopenvpn"
 )
 
 const (
@@ -16,7 +15,7 @@ const (
 
 type Manager struct {
 	cmd          *exec.Cmd
-	mgmtClient   *gopenvpn.Client
+	mgmtConn     net.Conn
 	tempConfPath string
 	isConnected  bool
 }
@@ -40,7 +39,6 @@ func (m *Manager) Connect(b64Config string) error {
 
 	// Launch OpenVPN
 	// Assuming openvpn.exe is in PATH or standard location
-	// Note: On Windows, might need exact path or rely on PATH environment
 	openvpnPath := "openvpn" 
 	
 	m.cmd = exec.Command(openvpnPath,
@@ -57,29 +55,26 @@ func (m *Manager) Connect(b64Config string) error {
 	time.Sleep(1 * time.Second)
 
 	// Connect to management interface
-	m.mgmtClient, err = gopenvpn.NewClient(managementHost, managementPort)
+	conn, err := net.DialTimeout("tcp", fmt.Sprintf("%s:%d", managementHost, managementPort), 2*time.Second)
 	if err != nil {
 		m.Disconnect()
 		return fmt.Errorf("failed to connect to openvpn management: %w", err)
 	}
+	m.mgmtConn = conn
 
-	// Wait for connection to establish (basic poll)
-	// In a real app, we would listen to events using mgmtClient
 	m.isConnected = true
 	log.Println("OpenVPN started and management connected")
 
-	// Once OpenVPN reads the config, we can technically delete it
-	// But it's safer to delete on disconnect
 	return nil
 }
 
 // Disconnect gracefully stops openvpn and cleans up.
 func (m *Manager) Disconnect() {
-	if m.mgmtClient != nil {
+	if m.mgmtConn != nil {
 		// Send SIGTERM via management interface for graceful shutdown
-		_ = m.mgmtClient.Signal("SIGTERM")
-		m.mgmtClient.Close()
-		m.mgmtClient = nil
+		_, _ = m.mgmtConn.Write([]byte("signal SIGTERM\r\n"))
+		m.mgmtConn.Close()
+		m.mgmtConn = nil
 	}
 
 	if m.cmd != nil {
