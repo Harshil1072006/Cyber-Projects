@@ -7,7 +7,6 @@ import (
 	"io"
 	"net/http"
 	"os"
-	"path/filepath"
 	"strconv"
 	"strings"
 	"sync"
