@@ -24,3 +24,7 @@ vapt_v1/venv/
 # OS files
 .DS_Store
 Thumbs.db
+
+# Java files
+*.java
+*.class
