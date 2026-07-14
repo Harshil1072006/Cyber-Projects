@@ -4,6 +4,8 @@
 
 **A comprehensive, enterprise-grade collection of advanced cybersecurity tools, DevSecOps pipelines, infrastructure automation, and AI-powered defense mechanisms.**
 
+> 🤖 **Note:** Many of the projects and documentation in this repository were generated or refined with the assistance of AI.
+
 [![Python](https://img.shields.io/badge/Python-3.10+-blue?style=for-the-badge&logo=python)](https://python.org)
 [![Java](https://img.shields.io/badge/Java-Spring_Boot-red?style=for-the-badge&logo=spring)](https://spring.io)
 [![Docker](https://img.shields.io/badge/Docker-Enabled-2496ED?style=for-the-badge&logo=docker)](https://docker.com)
@@ -74,23 +76,24 @@ Monitoring, tracking, and halting malicious activity across networks.
 Pipelines and Infrastructure as Code (IaC) to securely deploy and manage environments.
 
 - **[`DevSecOps CI_CD Security Pipeline/`](./DevSecOps%20CI_CD%20Security%20Pipeline)**: Automated security checks, SAST, and DAST integrations seamlessly embedded into modern GitHub/Jenkins CI/CD workflows.
+- **[`Infrastructure Automation with Bash, Python & CI/`](./Infrastructure%20Automation%20with%20Bash%2C%20Python%20%26%20CI)**: A simulated CI/CD pipeline using GitHub Actions, Python deployment orchestrators, and idempotent Bash scripts to deploy to mock staging/production Docker nodes with automated rollback support.
+- **[`Cloud VM Provisioning & Basic IaC Setup/`](./Cloud%20VM%20Provisioning%20%26%20Basic%20IaC%20Setup)**: A modular Terraform architecture to securely provision AWS EC2 instances within a custom VPC. Includes automated Bash bootstrapping (cloud-init), orphan resource teardown scripts, and FinOps cost estimation.
 - **[`Cloud Infrastructure Automation — AWS + Terraform/`](./Cloud%20Infrastructure%20Automation%20%E2%80%94%20AWS%20%2B%20Terraform)**: Scalable and secure cloud architecture deployment scripts using Terraform.
 - **[`Containerised Microservices Deployment — Docker & Kubernetes/`](./Containerised%20Microservices%20Deployment%20%E2%80%94%20Docker%20%26%20Kubernetes)**: Enterprise-grade deployment templates for orchestrating secure microservices.
-- **[`Cloud VM Provisioning & Basic IaC Setup/`](./Cloud%20VM%20Provisioning%20%26%20Basic%20IaC%20Setup)**: Baseline scripts for spinning up secure, hardened virtual machines.
 
 ### 📊 Log Analysis & Monitoring
 Ensuring visibility and alerting for enterprise systems.
 
 - **[`Centralized Log Analysis Pipeline — ELK Stack/`](./Centralized%20Log%20Analysis%20Pipeline%20%E2%80%94%20ELK%20Stack)**: A full Elasticsearch, Logstash, and Kibana setup for aggregating security logs.
-- **[`Automated Log Aggregation & Incident Alerting Pipeline/`](./Automated%20Log%20Aggregation%20%26%20Incident%20Alerting%20Pipeline)**: Scripts designed to parse server logs and trigger automated alerts on suspicious activity.
-- **[`Linux Server Monitoring & Alerting Dashboard/`](./Linux%20Server%20Monitoring%20%26%20Alerting%20Dashboard)**: Visual dashboard integrations for tracking system health and unauthorized access attempts.
+- **[`Automated Log Aggregation & Incident Alerting Pipeline/`](./Automated%20Log%20Aggregation%20%26%20Incident%20Alerting%20Pipeline)**: A fully containerized ELK stack with custom Logstash pipelines, Filebeat log shippers, and a Python-based alerting engine that detects error rate spikes and forwards alerts via webhook.
+- **[`Linux Server Monitoring & Alerting Dashboard/`](./Linux%20Server%20Monitoring%20%26%20Alerting%20Dashboard)**: A production-grade, self-hosted monitoring stack using Prometheus, Node Exporter, Alertmanager, and Grafana, featuring custom Python synthetic health-check exporters.
 - **[`Linux Server Health Monitoring System/`](./Linux%20Server%20Health%20Monitoring%20System)**: Lightweight Bash and Python agents for host-based metrics collection.
 
 ### 🛠️ Custom Utilities & Arsenal
 Personal scripts, extensions, and DevOps productivity tools.
 
 - **[`CyberArsenal/`](./CyberArsenal)**: A collection of custom scripts, payloads, and utility tools built for specialized penetration testing tasks.
-- **[`Infrastructure Automation with Bash, Python & CI/`](./Infrastructure%20Automation%20with%20Bash%2C%20Python%20%26%20CI)**: Everyday automation scripts for maintaining environments.
+- **[`VPNRotator/`](./VPNRotator)**: Automated script for securely rotating VPN proxies to mask geographic origins and bypass IP-rate limiting during authorized pentests.
 - **[`DevOps Things/`](./DevOps%20Things)**: Miscellaneous DevOps utilities and configuration snippets.
 - **[`PurePlay/`](./PurePlay)**: A browser extension utilizing content moderation techniques for safe browsing.
 - **[`AutoFillPro/`](./AutoFillPro)**: A productivity browser extension demonstrating secure manifest V3 practices and local data handling.
