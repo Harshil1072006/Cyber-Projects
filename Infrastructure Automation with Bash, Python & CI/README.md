@@ -1,5 +1,7 @@
 # 🏗️ Infrastructure Automation with Bash, Python & CI/CD
 
+> 🤖 **Note:** This project and its documentation were generated with the assistance of AI.
+
 > Replace manual server provisioning with version-controlled, idempotent automation scripts orchestrated by Python and wired into a CI/CD pipeline with automatic rollback support.
 
 [![CI](https://github.com/yourname/infra-automation/actions/workflows/ci.yml/badge.svg)](https://github.com/yourname/infra-automation/actions)
