@@ -1,0 +1,78 @@
+filebeat.yml:
+  - type: filestream
+    enabled: true
+    id: app-logs
+    paths:
+      - /var/log/app/*.log
+    fields:
+      host_name: "${HOST_NAME:unknown-host}"
+      environment: "${ENVIRONMENT:production}"
+      service_name: "${SERVICE_NAME:unknown-service}"
+      log_format: "app"
+    fields_under_root: false
+    parsers:
+      - ndjson:
+          target: ""
+          add_error_key: true
+          overwrite_keys: true
+
+  - type: filestream
+    enabled: true
+    id: nginx-logs
+    paths:
+      - /var/log/app/nginx-access.log
+    fields:
+      host_name: "${HOST_NAME:unknown-host}"
+      environment: "${ENVIRONMENT:production}"
+      service_name: "nginx"
+      log_format: "nginx"
+    fields_under_root: false
+
+filebeat.inputs:
+  - type: filestream
+    enabled: true
+    id: app-logs-main
+    paths:
+      - /var/log/app/app-server-*.log
+    fields:
+      host_name: "${HOST_NAME:unknown-host}"
+      environment: "${ENVIRONMENT:production}"
+      service_name: "${SERVICE_NAME:unknown-service}"
+      log_format: "app"
+    fields_under_root: false
+    close_inactive: 5m
+    scan_frequency: 5s
+
+  - type: filestream
+    enabled: true
+    id: nginx-access-logs
+    paths:
+      - /var/log/app/nginx-access.log
+    fields:
+      host_name: "${HOST_NAME:unknown-host}"
+      environment: "${ENVIRONMENT:production}"
+      service_name: "nginx"
+      log_format: "nginx"
+    fields_under_root: false
+    close_inactive: 5m
+
+output.logstash:
+  hosts: ["logstash:5044"]
+  worker: 2
+  bulk_max_size: 2048
+  timeout: 30s
+
+processors:
+  - add_host_metadata:
+      when.not.contains.tags: forwarded
+  - add_cloud_metadata: ~
+  - add_docker_metadata: ~
+  - drop_event:
+      when:
+        regexp:
+          message: "^\\s*$"
+
+logging.level: warning
+logging.to_files: false
+
+monitoring.enabled: false

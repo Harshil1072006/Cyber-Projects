@@ -1,0 +1,169 @@
+name: Deploy — Staging (Auto on merge to main)
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version to deploy (e.g. 1.2.3)"
+        required: false
+        default: ""
+      break_for_demo:
+        description: "Inject deliberate failure to demo rollback path?"
+        type: boolean
+        required: false
+        default: false
+
+permissions:
+  contents: read
+  actions:  write
+
+env:
+  ENVIRONMENT: staging
+  PYTHON:      python3
+
+jobs:
+
+  # ── Pre-deploy: validate everything ──────────────────────────────────────
+  validate:
+    name: Pre-deploy Validation
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # full history for git sha
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Validate staging config
+        run: python scripts/python/config_validator.py --env staging
+
+      - name: Run python tests
+        run: |
+          pip install pytest
+          pytest tests/test_python_orchestration.py -v --tb=short
+
+  # ── Deploy to staging ─────────────────────────────────────────────────────
+  deploy-staging:
+    name: Deploy → Staging
+    runs-on: ubuntu-22.04
+    needs: validate
+    environment:
+      name: staging
+      url: http://localhost:8080/health
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: |
+          pip install flask requests
+          sudo apt-get update -qq
+          sudo apt-get install -y curl jq
+
+      - name: Set up simulated staging host
+        run: |
+          # In CI, we simulate the "target host" locally
+          # (In real setup, this would be an SSH target or Kubernetes pod)
+          mkdir -p /var/lib/app /var/backups/app /var/log/app
+          sudo chmod 777 /var/lib/app /var/backups/app /var/log/app
+
+          # Start a mock health server in the background
+          python3 -c "
+          from http.server import HTTPServer, BaseHTTPRequestHandler
+          import json, threading, time
+
+          class H(BaseHTTPRequestHandler):
+              def do_GET(self):
+                  self.send_response(200)
+                  self.send_header('Content-Type', 'application/json')
+                  self.end_headers()
+                  self.wfile.write(json.dumps({'status': 'ok', 'env': 'staging'}).encode())
+              def log_message(self, *a): pass
+
+          httpd = HTTPServer(('', 8080), H)
+          httpd.serve_forever()
+          " &
+          echo "Mock health server started"
+          sleep 2
+
+          # Verify it's up
+          curl -sf http://localhost:8080/health
+
+      - name: Configure environment
+        run: |
+          # Inject any CI-specific overrides into staging.env
+          # (In prod, use GitHub Secrets to inject secrets)
+          sed -i "s|TARGET_HOST=.*|TARGET_HOST=localhost|" environments/staging.env
+          echo "APP_VERSION=${{ github.event.inputs.version || github.sha }}" >> environments/staging.env
+
+      - name: Record git info
+        id: git_info
+        run: |
+          echo "sha=${{ github.sha }}"    >> "$GITHUB_OUTPUT"
+          echo "short_sha=${GITHUB_SHA::8}" >> "$GITHUB_OUTPUT"
+
+      - name: Deploy to staging
+        id: deploy
+        run: |
+          DEPLOY_ARGS="--env staging --sha ${{ github.sha }}"
+
+          # Version
+          if [[ -n "${{ github.event.inputs.version }}" ]]; then
+            DEPLOY_ARGS="$DEPLOY_ARGS --version ${{ github.event.inputs.version }}"
+          fi
+
+          # Demo rollback path
+          if [[ "${{ github.event.inputs.break_for_demo }}" == "true" ]]; then
+            echo "⚡ Injecting deliberate failure for rollback demo"
+            DEPLOY_ARGS="$DEPLOY_ARGS --break-for-demo"
+          fi
+
+          DEPLOY_ARGS="$DEPLOY_ARGS --skip-backup"
+
+          python3 scripts/python/deploy.py $DEPLOY_ARGS
+        env:
+          APP_VERSION: ${{ github.event.inputs.version || github.sha }}
+          GITHUB_SHA:  ${{ github.sha }}
+          GITHUB_RUN_ID: ${{ github.run_id }}
+          GITHUB_ACTOR: ${{ github.actor }}
+
+      - name: Verify deployment
+        if: success()
+        run: |
+          echo "Verifying staging deployment..."
+          python3 scripts/python/release_tracker.py status
+          python3 scripts/python/release_tracker.py current --env staging
+
+      - name: Upload deploy logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: staging-deploy-logs-${{ steps.git_info.outputs.short_sha }}
+          path: deploy-logs/
+          retention-days: 30
+
+      - name: Upload release manifest
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: staging-release-manifest-${{ steps.git_info.outputs.short_sha }}
+          path: release_manifest.json
+          retention-days: 90
+
+      - name: Notify on failure
+        if: failure()
+        run: |
+          echo "::error title=Staging Deploy Failed::Check deploy-logs artifact for details"
+          echo "::notice title=Rollback::deploy.py automatically invoked rollback.py on failure"

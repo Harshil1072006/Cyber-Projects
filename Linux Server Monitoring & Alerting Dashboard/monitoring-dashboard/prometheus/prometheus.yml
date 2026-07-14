@@ -1,0 +1,83 @@
+# ─────────────────────────────────────────────────────────────────
+#  prometheus.yml  —  Main Prometheus configuration
+#  Docs: https://prometheus.io/docs/prometheus/latest/configuration/
+# ─────────────────────────────────────────────────────────────────
+
+global:
+  scrape_interval: 15s          # How often to scrape targets
+  evaluation_interval: 15s      # How often to evaluate rules
+  scrape_timeout: 10s
+  external_labels:
+    monitor: "linux-sre-dashboard"
+    environment: "production"   # Change to staging/dev as needed
+
+# ── Alertmanager endpoint ─────────────────────────────────────────
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+            - alertmanager:9093
+      timeout: 10s
+      api_version: v2
+
+# ── Alert rule files ──────────────────────────────────────────────
+rule_files:
+  - "/etc/prometheus/alert_rules.yml"
+
+# ── Scrape configurations ─────────────────────────────────────────
+scrape_configs:
+
+  # Prometheus self-monitoring
+  - job_name: "prometheus"
+    honor_labels: true
+    static_configs:
+      - targets: ["localhost:9090"]
+    metrics_path: /metrics
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: instance
+        replacement: "prometheus-server"
+
+  # Node Exporter — host-level metrics (CPU, RAM, disk, net)
+  - job_name: "node_exporter"
+    scrape_interval: 10s          # Higher frequency for host metrics
+    static_configs:
+      - targets: ["node_exporter:9100"]
+        labels:
+          host_role: "monitoring-server"
+          datacenter: "local"
+    relabel_configs:
+      - source_labels: [__address__]
+        regex: "(.+):.*"
+        target_label: instance
+        replacement: "${1}"
+
+  # Custom Python health-check exporter
+  - job_name: "health_check_exporter"
+    scrape_interval: 30s
+    static_configs:
+      - targets: ["health_check_exporter:9201"]
+        labels:
+          exporter_type: "synthetic"
+    metrics_path: /metrics
+
+  # Alertmanager self-monitoring
+  - job_name: "alertmanager"
+    static_configs:
+      - targets: ["alertmanager:9093"]
+
+  # Grafana self-monitoring
+  - job_name: "grafana"
+    static_configs:
+      - targets: ["grafana:3000"]
+    metrics_path: /metrics
+
+  # ── Template for adding additional hosts ──────────────────────
+  # To add a new host, copy this block and adjust targets/labels:
+  #
+  # - job_name: "node_exporter_web01"
+  #   static_configs:
+  #     - targets: ["192.168.1.100:9100"]
+  #       labels:
+  #         host_role: "web-server"
+  #         datacenter: "us-east-1"

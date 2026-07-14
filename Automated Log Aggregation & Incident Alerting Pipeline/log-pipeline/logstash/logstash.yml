@@ -1,0 +1,13 @@
+api.enabled: true
+api.http.host: 0.0.0.0
+api.http.port: 9600
+log.format: json
+log.level: warn
+node.name: logstash-pipeline
+path.data: /usr/share/logstash/data
+path.logs: /usr/share/logstash/logs
+pipeline.batch.delay: 50
+pipeline.batch.size: 250
+pipeline.id: main
+pipeline.workers: 2
+xpack.monitoring.enabled: ${xpack.monitoring.enabled}

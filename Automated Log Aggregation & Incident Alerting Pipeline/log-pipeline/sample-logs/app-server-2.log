@@ -1,0 +1,34 @@
+2026-07-13T08:00:00.100Z [INFO] auth-service: Service started version=1.8.3 pid=2100
+2026-07-13T08:00:10.200Z [INFO] auth-service: JWT secret loaded key_id=prod-2026-07
+2026-07-13T08:01:10.300Z [INFO] auth-service: Login successful user_id=1001 request_id=req-auth001 endpoint=/api/auth/login duration_ms=45
+2026-07-13T08:01:10.400Z [INFO] auth-service: JWT token issued user_id=1001 expires_in=3600s
+2026-07-13T08:02:20.500Z [INFO] auth-service: Session refreshed user_id=2847 request_id=req-auth002
+2026-07-13T08:02:20.600Z [INFO] auth-service: Rate limit check passed user_id=2847 count=3/100
+2026-07-13T08:03:30.700Z [INFO] auth-service: User profile fetched user_id=9123 duration_ms=22
+2026-07-13T08:04:40.800Z [INFO] auth-service: Login successful user_id=4456 request_id=req-auth003 duration_ms=38
+2026-07-13T08:05:50.900Z [WARN] auth-service: Slow token validation user_id=7789 duration_ms=1102ms threshold=1000ms
+2026-07-13T08:06:00.000Z [INFO] auth-service: Health check passed uptime=360s
+2026-07-13T08:07:10.100Z [WARN] auth-service: Failed login attempt user_id=unknown ip=203.0.113.45 request_id=req-auth004 — Invalid password attempt 1/5
+2026-07-13T08:07:12.200Z [WARN] auth-service: Failed login attempt user_id=unknown ip=203.0.113.45 — Failed password for user admin attempt 2/5
+2026-07-13T08:07:14.300Z [ERROR] auth-service: Authentication failed ip=203.0.113.45 — Invalid password attempt 3/5 request_id=req-auth005
+2026-07-13T08:07:16.400Z [ERROR] auth-service: Authentication failed ip=203.0.113.45 — Invalid password attempt 4/5 request_id=req-auth006
+2026-07-13T08:07:18.500Z [ERROR] auth-service: Authentication failed ip=203.0.113.45 — Invalid password attempt 5/5 request_id=req-auth007
+2026-07-13T08:07:18.600Z [WARN] auth-service: Account temporarily locked user=admin ip=203.0.113.45 after 5 failed attempts duration=900s
+2026-07-13T08:07:19.000Z [ERROR] auth-service: Possible brute-force attack detected ip=203.0.113.45 — 5 failures in 12s
+2026-07-13T08:08:00.000Z [INFO] auth-service: IP 203.0.113.45 added to temporary block list ttl=900s
+2026-07-13T08:10:00.000Z [INFO] auth-service: Health check passed uptime=600s
+2026-07-13T08:11:15.100Z [INFO] auth-service: Login successful user_id=1001 request_id=req-auth008 duration_ms=41
+2026-07-13T08:12:30.200Z [INFO] auth-service: Session refreshed user_id=2847 request_id=req-auth009
+2026-07-13T08:13:45.300Z [ERROR] auth-service: Could not connect to database host=pg-primary:5432 — Connection refused
+2026-07-13T08:13:45.400Z [ERROR] auth-service: Session store unavailable — Redis connection refused host=redis:6379
+2026-07-13T08:13:46.000Z [WARN] auth-service: Falling back to stateless JWT validation — session persistence disabled
+2026-07-13T08:15:00.000Z [INFO] auth-service: Health check passed uptime=900s
+2026-07-13T08:16:00.100Z [ERROR] auth-service: SSL certificate validation failed for auth.internal — certificate expired (expired: 2026-07-01T00:00:00Z)
+2026-07-13T08:16:00.200Z [ERROR] auth-service: Unable to verify SSL certificate for internal CA — self-signed certificate in chain
+2026-07-13T08:17:00.000Z [INFO] auth-service: Login successful user_id=4456 request_id=req-auth010 duration_ms=55
+2026-07-13T08:18:00.000Z [WARN] auth-service: Rate limit exceeded for IP 10.0.1.25 — 429 Too Many Requests count=150/100
+2026-07-13T08:18:00.100Z [INFO] auth-service: Rate limit reset for user_id=1001 window=60s
+2026-07-13T08:20:00.000Z [INFO] auth-service: Health check passed uptime=1200s
+2026-07-13T08:22:30.000Z [INFO] auth-service: Login successful user_id=9123 request_id=req-auth011 duration_ms=48
+2026-07-13T08:23:45.000Z [INFO] auth-service: JWT token issued user_id=9123 expires_in=3600s
+2026-07-13T08:25:00.000Z [INFO] auth-service: Health check passed uptime=1500s

@@ -1,0 +1,90 @@
+# ─────────────────────────────────────────────────────────────────
+#  checks_config.yml  —  Health check target configuration
+#
+#  Supported check types:
+#    http    — GET request; checks status code and optional body text
+#    tcp     — TCP connect to host:port
+#    systemd — `systemctl is-active <service>` check
+#
+#  Prometheus metrics labelled by:
+#    service_name, target_url, check_type
+# ─────────────────────────────────────────────────────────────────
+
+checks:
+
+  # ── HTTP endpoint checks ───────────────────────────────────────
+
+  - name: "prometheus-ui"
+    type: http
+    url: "http://prometheus:9090/-/ready"
+    expected_status: 200
+    timeout: 5
+    expected_body: "Prometheus Server is Ready."
+
+  - name: "alertmanager-api"
+    type: http
+    url: "http://alertmanager:9093/-/ready"
+    expected_status: 200
+    timeout: 5
+
+  - name: "grafana-api"
+    type: http
+    url: "http://grafana:3000/api/health"
+    expected_status: 200
+    expected_body: "ok"
+    timeout: 5
+
+  - name: "node-exporter-metrics"
+    type: http
+    url: "http://node_exporter:9100/metrics"
+    expected_status: 200
+    timeout: 5
+
+  # ── TCP port checks ────────────────────────────────────────────
+  # Useful for databases, message brokers, and internal services
+  # that don't have an HTTP health endpoint.
+
+  - name: "prometheus-tcp"
+    type: tcp
+    host: "prometheus"
+    port: 9090
+    timeout: 3
+
+  - name: "grafana-tcp"
+    type: tcp
+    host: "grafana"
+    port: 3000
+    timeout: 3
+
+  # ── Example: external service checks (uncomment + adjust) ──────
+
+  # - name: "google-dns"
+  #   type: tcp
+  #   host: "8.8.8.8"
+  #   port: 53
+  #   timeout: 3
+
+  # - name: "my-web-app"
+  #   type: http
+  #   url: "https://myapp.example.com/health"
+  #   expected_status: 200
+  #   expected_body: '"status":"healthy"'
+  #   timeout: 10
+  #   verify_tls: true
+
+  # ── Systemd service checks (works on host, not in container) ───
+  # These are most useful when health_check.py runs directly on
+  # the host (not in Docker), or when the container has host PID
+  # namespace and can access systemd.
+
+  # - name: "nginx"
+  #   type: systemd
+  #   service: "nginx"
+
+  # - name: "postgresql"
+  #   type: systemd
+  #   service: "postgresql"
+
+  # - name: "sshd"
+  #   type: systemd
+  #   service: "sshd"

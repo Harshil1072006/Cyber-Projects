@@ -1,0 +1,25 @@
+# ─────────────────────────────────────────────────────────────────────────────
+#  elasticsearch.yml  —  Elasticsearch node configuration
+# ─────────────────────────────────────────────────────────────────────────────
+
+cluster.name: "log-pipeline-cluster"
+node.name: "elasticsearch"
+
+# Network
+network.host: 0.0.0.0
+http.port: 9200
+
+# Single-node development mode
+discovery.type: single-node
+
+# Disable security for local development
+xpack.security.enabled: false
+xpack.security.http.ssl.enabled: false
+xpack.security.transport.ssl.enabled: false
+
+# Performance tuning
+indices.memory.index_buffer_size: 30%
+thread_pool.write.queue_size: 1000
+
+# Logging
+logger.level: WARN

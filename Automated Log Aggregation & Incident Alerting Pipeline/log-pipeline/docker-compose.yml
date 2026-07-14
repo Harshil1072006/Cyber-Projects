@@ -1,0 +1,214 @@
+# ─────────────────────────────────────────────────────────────────────────────
+#  Automated Log Aggregation & Incident Alerting Pipeline
+#  docker-compose.yml  —  Full ELK stack + multi-host log simulation
+#
+#  Usage:
+#    docker compose up -d
+#    # Wait ~60s for Elasticsearch to be ready, then:
+#    docker compose exec log-simulator bash /scripts/simulate_logs.sh &
+#    # Open Kibana: http://localhost:5601
+# ─────────────────────────────────────────────────────────────────────────────
+
+networks:
+  elk:
+    driver: bridge
+
+volumes:
+  elasticsearch_data:
+    driver: local
+  logstash_data:
+    driver: local
+
+services:
+
+  # ── Elasticsearch ──────────────────────────────────────────────────────────
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.13.4
+    container_name: elasticsearch
+    restart: unless-stopped
+    environment:
+      - node.name=elasticsearch
+      - cluster.name=log-pipeline-cluster
+      - discovery.type=single-node
+      - xpack.security.enabled=false          # disabled for local dev
+      - xpack.security.http.ssl.enabled=false
+      - xpack.license.self_generated.type=basic
+      - ES_JAVA_OPTS=-Xms1g -Xmx1g
+      - bootstrap.memory_lock=true
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+      nofile:
+        soft: 65536
+        hard: 65536
+    volumes:
+      - elasticsearch_data:/usr/share/elasticsearch/data
+      - ./elasticsearch/elasticsearch.yml:/usr/share/elasticsearch/config/elasticsearch.yml:ro
+    ports:
+      - "9200:9200"
+      - "9300:9300"
+    networks:
+      - elk
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:9200/_cluster/health | grep -qE '\"status\":\"(green|yellow)\"'"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 60s
+
+  # ── Kibana ─────────────────────────────────────────────────────────────────
+  kibana:
+    image: docker.elastic.co/kibana/kibana:8.13.4
+    container_name: kibana
+    restart: unless-stopped
+    environment:
+      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+      - KIBANA_SYSTEM_PASSWORD=kibana
+      - xpack.security.enabled=false
+      - xpack.encryptedSavedObjects.encryptionKey=a7a6311933d3503b89bc2dbc36572c33
+      - xpack.reporting.encryptionKey=a7a6311933d3503b89bc2dbc36572c33
+      - xpack.security.encryptionKey=a7a6311933d3503b89bc2dbc36572c33
+    volumes:
+      - ./kibana/kibana.yml:/usr/share/kibana/config/kibana.yml:ro
+    ports:
+      - "5601:5601"
+    networks:
+      - elk
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:5601/api/status | grep -q '\"level\":\"available\"'"]
+      interval: 30s
+      timeout: 15s
+      retries: 10
+      start_period: 90s
+
+  # ── Logstash ───────────────────────────────────────────────────────────────
+  logstash:
+    image: docker.elastic.co/logstash/logstash:8.13.4
+    container_name: logstash
+    restart: unless-stopped
+    environment:
+      - xpack.monitoring.enabled=false
+      - LS_JAVA_OPTS=-Xmx512m -Xms512m
+    volumes:
+      - ./logstash/logstash.yml:/usr/share/logstash/config/logstash.yml
+      - ./logstash/pipeline:/usr/share/logstash/pipeline:ro
+      - logstash_data:/usr/share/logstash/data
+    ports:
+      - "5044:5044"   # Beats input
+      - "9600:9600"   # Logstash API
+    networks:
+      - elk
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:9600/_node/stats | grep -q 'events'"]
+      interval: 30s
+      timeout: 10s
+      retries: 8
+      start_period: 60s
+
+  # ── Filebeat — app-server-1 ────────────────────────────────────────────────
+  filebeat-app1:
+    image: docker.elastic.co/beats/filebeat:8.13.4
+    container_name: filebeat-app1
+    restart: unless-stopped
+    user: root
+    command: filebeat -e -strict.perms=false
+    environment:
+      - HOST_NAME=app-server-1
+      - ENVIRONMENT=production
+      - SERVICE_NAME=payment-service
+    volumes:
+      - ./filebeat/filebeat.yml:/usr/share/filebeat/filebeat.yml:ro
+      - ./sample-logs:/var/log/app:ro
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    networks:
+      - elk
+    depends_on:
+      logstash:
+        condition: service_healthy
+
+  # ── Filebeat — app-server-2 ────────────────────────────────────────────────
+  filebeat-app2:
+    image: docker.elastic.co/beats/filebeat:8.13.4
+    container_name: filebeat-app2
+    restart: unless-stopped
+    user: root
+    command: filebeat -e -strict.perms=false
+    environment:
+      - HOST_NAME=app-server-2
+      - ENVIRONMENT=production
+      - SERVICE_NAME=auth-service
+    volumes:
+      - ./filebeat/filebeat.yml:/usr/share/filebeat/filebeat.yml:ro
+      - ./sample-logs:/var/log/app:ro
+    networks:
+      - elk
+    depends_on:
+      logstash:
+        condition: service_healthy
+
+  # ── Filebeat — nginx ───────────────────────────────────────────────────────
+  filebeat-nginx:
+    image: docker.elastic.co/beats/filebeat:8.13.4
+    container_name: filebeat-nginx
+    restart: unless-stopped
+    user: root
+    command: filebeat -e -strict.perms=false
+    environment:
+      - HOST_NAME=nginx-proxy-1
+      - ENVIRONMENT=production
+      - SERVICE_NAME=nginx
+    volumes:
+      - ./filebeat/filebeat.yml:/usr/share/filebeat/filebeat.yml:ro
+      - ./sample-logs:/var/log/app:ro
+    networks:
+      - elk
+    depends_on:
+      logstash:
+        condition: service_healthy
+
+  # ── Log Simulator ──────────────────────────────────────────────────────────
+  # Generates realistic log traffic into sample-logs/ for demo purposes.
+  # The Filebeat containers above pick it up and ship it to Logstash.
+  log-simulator:
+    image: bash:5.2
+    container_name: log-simulator
+    restart: unless-stopped
+    volumes:
+      - ./scripts:/scripts
+      - ./sample-logs:/var/log/app
+    command: >
+      bash -c "
+        chmod +x /scripts/simulate_logs.sh &&
+        echo 'Log simulator ready. Run: docker exec log-simulator bash /scripts/simulate_logs.sh' &&
+        tail -f /dev/null
+      "
+    networks:
+      - elk
+
+  # ── Python Alerter ─────────────────────────────────────────────────────────
+  # Runs error_rate_alerter.py in a polling loop.
+  alerter:
+    build:
+      context: ./scripts
+      dockerfile: Dockerfile.alerter
+    container_name: error-rate-alerter
+    restart: unless-stopped
+    environment:
+      - ES_HOST=http://elasticsearch:9200
+      - ALERT_THRESHOLD=10        # errors per 5-minute window
+      - SPIKE_MULTIPLIER=3.0      # alert if current rate is 3x baseline
+      - CHECK_INTERVAL=60         # seconds between checks
+      - SLACK_WEBHOOK_URL=${SLACK_WEBHOOK_URL:-}
+    networks:
+      - elk
+    depends_on:
+      elasticsearch:
+        condition: service_healthy

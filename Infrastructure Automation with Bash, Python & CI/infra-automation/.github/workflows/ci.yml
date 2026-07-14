@@ -1,0 +1,186 @@
+name: CI — Lint, Test & Validate
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+
+  # ── Job 1: Bash linting with ShellCheck ─────────────────────────────────
+  lint-bash:
+    name: ShellCheck (Bash)
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install ShellCheck
+        run: sudo apt-get install -y shellcheck
+
+      - name: Lint all bash scripts
+        run: |
+          echo "Running ShellCheck on all .sh files..."
+          find scripts/bash -name "*.sh" | sort | while read -r script; do
+            echo "  Checking: $script"
+            shellcheck --severity=warning --shell=bash "$script"
+          done
+          echo "ShellCheck passed for all scripts"
+
+      - name: Verify set -euo pipefail in all scripts
+        run: |
+          failed=0
+          find scripts/bash -name "*.sh" ! -name "common.sh" | while read -r script; do
+            if ! grep -q "set -euo pipefail" "$script"; then
+              echo "MISSING 'set -euo pipefail': $script"
+              failed=1
+            fi
+          done
+          exit $failed
+
+  # ── Job 2: Python linting ────────────────────────────────────────────────
+  lint-python:
+    name: Ruff + Flake8 (Python)
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install linters
+        run: pip install ruff flake8
+
+      - name: Ruff check (fast linter + formatter check)
+        run: |
+          ruff check scripts/python/ tests/test_python_orchestration.py \
+            --select E,W,F,I \
+            --ignore E501 \
+            --output-format=github
+
+      - name: Flake8 (style gate)
+        run: |
+          flake8 scripts/python/ tests/test_python_orchestration.py \
+            --max-line-length=120 \
+            --ignore=E501,W503 \
+            --count \
+            --statistics
+
+  # ── Job 3: Config validation ─────────────────────────────────────────────
+  validate-configs:
+    name: Validate Environment Configs
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Validate staging config
+        run: |
+          python scripts/python/config_validator.py --env staging
+          echo "Staging config: valid"
+
+      - name: Validate production config
+        run: |
+          python scripts/python/config_validator.py --env production
+          echo "Production config: valid"
+
+  # ── Job 4: pytest ────────────────────────────────────────────────────────
+  test-python:
+    name: pytest (Python orchestration)
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install test dependencies
+        run: pip install pytest pytest-cov requests
+
+      - name: Run pytest
+        run: |
+          pytest tests/test_python_orchestration.py \
+            -v \
+            --tb=short \
+            --cov=scripts/python \
+            --cov-report=term-missing \
+            --cov-report=xml:coverage.xml \
+            --junit-xml=test-results/pytest.xml
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pytest-results
+          path: |
+            test-results/pytest.xml
+            coverage.xml
+
+  # ── Job 5: Bash tests (bats-core) ────────────────────────────────────────
+  test-bash:
+    name: bats-core (Bash idempotency)
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install bats-core
+        run: |
+          git clone --depth 1 https://github.com/bats-core/bats-core.git /tmp/bats-core
+          sudo /tmp/bats-core/install.sh /usr/local
+
+      - name: Install test dependencies (tools the bash scripts use)
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y curl git jq rsync python3 python3-pip
+          pip3 install --quiet flask
+
+      - name: Run bats tests
+        run: |
+          bats --tap tests/test_bash_scripts.bats \
+            | tee test-results/bats.tap
+
+      - name: Upload bats results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: bats-results
+          path: test-results/bats.tap
+
+  # ── Summary gate ─────────────────────────────────────────────────────────
+  ci-gate:
+    name: CI Gate (all must pass)
+    runs-on: ubuntu-22.04
+    needs:
+      - lint-bash
+      - lint-python
+      - validate-configs
+      - test-python
+      - test-bash
+    if: always()
+    steps:
+      - name: Check all CI jobs passed
+        run: |
+          results='${{ toJSON(needs) }}'
+          echo "$results" | python3 -c "
+          import json, sys
+          needs = json.load(sys.stdin)
+          failed = [name for name, data in needs.items() if data['result'] not in ('success', 'skipped')]
+          if failed:
+              print('FAILED jobs:', failed)
+              sys.exit(1)
+          print('All CI jobs passed!')
+          "

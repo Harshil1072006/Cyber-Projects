@@ -1,0 +1,23 @@
+# Secrets — never commit these
+.env
+
+# Elasticsearch data (managed by Docker volumes)
+elasticsearch_data/
+logstash_data/
+
+# Dead-letter queue logs
+dead-letter/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# macOS
+.DS_Store
+
+# Editor
+.idea/
+.vscode/
+*.swp

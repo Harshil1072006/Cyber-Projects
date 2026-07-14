@@ -1,0 +1,71 @@
+# ─────────────────────────────────────────────────────────────────────────────
+#  docker/docker-compose.yml — Simulated staging + production target hosts
+#
+#  Usage:
+#    docker compose up -d                # start both servers
+#    docker compose up -d staging-host   # just staging
+#    # Then run deploy.py against them:
+#    python scripts/python/deploy.py --env staging
+# ─────────────────────────────────────────────────────────────────────────────
+
+networks:
+  deploy-net:
+    driver: bridge
+
+services:
+
+  # ── Staging "server" ────────────────────────────────────────────────────
+  staging-host:
+    build:
+      context: .
+      dockerfile: Dockerfile.target-host
+    container_name: staging-host
+    hostname: staging-host
+    restart: unless-stopped
+    environment:
+      - APP_ENV=staging
+    ports:
+      - "8080:8080"   # App health endpoint
+      - "2222:22"     # SSH access
+    volumes:
+      - staging_app_data:/var/lib/app
+      - staging_backups:/var/backups/app
+    networks:
+      - deploy-net
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:8080/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+
+  # ── Production "server" ─────────────────────────────────────────────────
+  production-host:
+    build:
+      context: .
+      dockerfile: Dockerfile.target-host
+    container_name: production-host
+    hostname: production-host
+    restart: unless-stopped
+    environment:
+      - APP_ENV=production
+    ports:
+      - "8081:8080"   # App (different host port to avoid conflict)
+      - "2223:22"     # SSH
+    volumes:
+      - production_app_data:/var/lib/app
+      - production_backups:/var/backups/app
+    networks:
+      - deploy-net
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:8080/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+
+volumes:
+  staging_app_data:
+  staging_backups:
+  production_app_data:
+  production_backups:

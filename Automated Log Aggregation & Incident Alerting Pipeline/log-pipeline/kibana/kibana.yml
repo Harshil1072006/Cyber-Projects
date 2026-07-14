@@ -1,0 +1,25 @@
+server.name: kibana
+server.host: "0.0.0.0"
+server.port: 5601
+
+elasticsearch.hosts: ["http://elasticsearch:9200"]
+
+# Disable security for local dev
+xpack.security.enabled: false
+
+# Required for Kibana alerting / saved objects encryption
+xpack.encryptedSavedObjects.encryptionKey: "a7a6311933d3503b89bc2dbc36572c33a"
+xpack.reporting.encryptionKey: "a7a6311933d3503b89bc2dbc36572c33a"
+
+# Logging
+logging.appenders.default:
+  type: console
+  layout:
+    type: pattern
+    highlight: false
+logging.root:
+  level: warn
+
+# Telemetry
+telemetry.enabled: false
+telemetry.optIn: false

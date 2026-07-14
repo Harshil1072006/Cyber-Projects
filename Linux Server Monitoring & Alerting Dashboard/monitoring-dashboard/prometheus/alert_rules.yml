@@ -1,0 +1,342 @@
+# ─────────────────────────────────────────────────────────────────
+#  alert_rules.yml  —  Prometheus alerting rules
+#
+#  Severity tiers:
+#    warning  → investigate soon (Slack low-priority channel)
+#    critical → page on-call immediately (PagerDuty / Slack critical)
+#
+#  "for" durations prevent flapping on transient spikes.
+#  See docs/RUNBOOK.md for remediation steps for each alert.
+# ─────────────────────────────────────────────────────────────────
+
+groups:
+
+  # ──────────────────────────────────────────────────────────────
+  #  CPU Alerts
+  # ──────────────────────────────────────────────────────────────
+  - name: cpu_alerts
+    interval: 15s
+    rules:
+
+      - alert: HighCPUUsage
+        expr: |
+          (
+            1 - avg by(instance) (
+              rate(node_cpu_seconds_total{mode="idle"}[2m])
+            )
+          ) * 100 > 85
+        for: 5m
+        labels:
+          severity: critical
+          team: sre
+          runbook: "https://github.com/your-org/monitoring-dashboard/blob/main/docs/RUNBOOK.md#high-cpu-usage"
+        annotations:
+          summary: "High CPU usage on {{ $labels.instance }}"
+          description: >
+            CPU utilisation on {{ $labels.instance }} has been above 85% for
+            more than 5 minutes. Current value: {{ $value | printf "%.1f" }}%.
+            Check for runaway processes: `top -bn1 | head -20`
+            See RUNBOOK.md#high-cpu-usage for full remediation steps.
+
+      - alert: CriticalCPUUsage
+        expr: |
+          (
+            1 - avg by(instance) (
+              rate(node_cpu_seconds_total{mode="idle"}[2m])
+            )
+          ) * 100 > 95
+        for: 2m
+        labels:
+          severity: critical
+          team: sre
+          runbook: "https://github.com/your-org/monitoring-dashboard/blob/main/docs/RUNBOOK.md#high-cpu-usage"
+        annotations:
+          summary: "CRITICAL CPU saturation on {{ $labels.instance }}"
+          description: >
+            CPU utilisation on {{ $labels.instance }} exceeds 95%.
+            Current value: {{ $value | printf "%.1f" }}%.
+            Immediate action required — system may become unresponsive.
+
+  # ──────────────────────────────────────────────────────────────
+  #  Memory Alerts
+  # ──────────────────────────────────────────────────────────────
+  - name: memory_alerts
+    interval: 15s
+    rules:
+
+      - alert: HighMemoryUsage
+        expr: |
+          (
+            1 - (
+              node_memory_MemAvailable_bytes /
+              node_memory_MemTotal_bytes
+            )
+          ) * 100 > 90
+        for: 5m
+        labels:
+          severity: critical
+          team: sre
+          runbook: "https://github.com/your-org/monitoring-dashboard/blob/main/docs/RUNBOOK.md#high-memory-usage"
+        annotations:
+          summary: "High memory usage on {{ $labels.instance }}"
+          description: >
+            Memory utilisation on {{ $labels.instance }} has been above 90%
+            for 5 minutes. Current value: {{ $value | printf "%.1f" }}%.
+            Available: {{ with query "node_memory_MemAvailable_bytes{instance=~\"" }}{{ . }}{{ end }}
+            Run `free -h` and `ps aux --sort=-%mem | head -15` to identify consumers.
+            See RUNBOOK.md#high-memory-usage.
+
+      - alert: WarningMemoryUsage
+        expr: |
+          (
+            1 - (
+              node_memory_MemAvailable_bytes /
+              node_memory_MemTotal_bytes
+            )
+          ) * 100 > 80
+        for: 10m
+        labels:
+          severity: warning
+          team: sre
+          runbook: "https://github.com/your-org/monitoring-dashboard/blob/main/docs/RUNBOOK.md#high-memory-usage"
+        annotations:
+          summary: "Memory usage elevated on {{ $labels.instance }}"
+          description: >
+            Memory on {{ $labels.instance }} is at {{ $value | printf "%.1f" }}%.
+            Monitor closely — at 90% a critical alert will fire.
+
+      - alert: MemoryOOM
+        expr: |
+          increase(node_vmstat_oom_kill[5m]) > 0
+        for: 0m
+        labels:
+          severity: critical
+          team: sre
+        annotations:
+          summary: "OOM killer triggered on {{ $labels.instance }}"
+          description: >
+            The Linux OOM killer has terminated {{ $value }} process(es) in
+            the last 5 minutes on {{ $labels.instance }}.
+            Check `dmesg | grep -i oom` for killed process details.
+
+  # ──────────────────────────────────────────────────────────────
+  #  Disk Alerts
+  # ──────────────────────────────────────────────────────────────
+  - name: disk_alerts
+    interval: 30s
+    rules:
+
+      - alert: LowDiskSpace
+        expr: |
+          (
+            node_filesystem_avail_bytes{fstype!~"tmpfs|fuse.lxcfs|squashfs|overlay"} /
+            node_filesystem_size_bytes{fstype!~"tmpfs|fuse.lxcfs|squashfs|overlay"}
+          ) * 100 < 10
+        for: 10m
+        labels:
+          severity: critical
+          team: sre
+          runbook: "https://github.com/your-org/monitoring-dashboard/blob/main/docs/RUNBOOK.md#low-disk-space"
+        annotations:
+          summary: "Low disk space on {{ $labels.instance }} ({{ $labels.mountpoint }})"
+          description: >
+            Disk {{ $labels.mountpoint }} on {{ $labels.instance }} has only
+            {{ $value | printf "%.1f" }}% free space remaining.
+            Run `df -h` and `du -sh /* | sort -rh | head -20` to find large directories.
+            See RUNBOOK.md#low-disk-space.
+
+      - alert: DiskSpaceWarning
+        expr: |
+          (
+            node_filesystem_avail_bytes{fstype!~"tmpfs|fuse.lxcfs|squashfs|overlay"} /
+            node_filesystem_size_bytes{fstype!~"tmpfs|fuse.lxcfs|squashfs|overlay"}
+          ) * 100 < 20
+        for: 10m
+        labels:
+          severity: warning
+          team: sre
+          runbook: "https://github.com/your-org/monitoring-dashboard/blob/main/docs/RUNBOOK.md#low-disk-space"
+        annotations:
+          summary: "Disk space below 20% on {{ $labels.instance }} ({{ $labels.mountpoint }})"
+          description: >
+            Disk {{ $labels.mountpoint }} on {{ $labels.instance }} is at
+            {{ $value | printf "%.1f" }}% free. Plan capacity expansion.
+
+      - alert: DiskIOSaturation
+        expr: |
+          rate(node_disk_io_time_seconds_total[5m]) * 100 > 80
+        for: 5m
+        labels:
+          severity: warning
+          team: sre
+        annotations:
+          summary: "Disk I/O saturation on {{ $labels.instance }} ({{ $labels.device }})"
+          description: >
+            Disk {{ $labels.device }} on {{ $labels.instance }} is utilised
+            at {{ $value | printf "%.1f" }}% I/O capacity for 5+ minutes.
+            Run `iostat -x 1 5` to investigate.
+
+      - alert: DiskWillFillIn24h
+        expr: |
+          (
+            node_filesystem_avail_bytes{fstype!~"tmpfs|fuse.lxcfs|squashfs|overlay"} +
+            predict_linear(
+              node_filesystem_avail_bytes{fstype!~"tmpfs|fuse.lxcfs|squashfs|overlay"}[6h],
+              24 * 3600
+            )
+          ) < 0
+        for: 15m
+        labels:
+          severity: warning
+          team: sre
+        annotations:
+          summary: "Disk {{ $labels.mountpoint }} on {{ $labels.instance }} will fill within 24h"
+          description: >
+            Based on the current write rate, {{ $labels.mountpoint }} on
+            {{ $labels.instance }} is projected to run out of space within
+            24 hours. Take action before the critical threshold is breached.
+
+  # ──────────────────────────────────────────────────────────────
+  #  Host Availability Alerts
+  # ──────────────────────────────────────────────────────────────
+  - name: host_availability
+    interval: 15s
+    rules:
+
+      - alert: HostDown
+        expr: up == 0
+        for: 1m
+        labels:
+          severity: critical
+          team: sre
+          runbook: "https://github.com/your-org/monitoring-dashboard/blob/main/docs/RUNBOOK.md#host-down"
+        annotations:
+          summary: "Host {{ $labels.instance }} is unreachable"
+          description: >
+            Prometheus cannot scrape {{ $labels.instance }} (job: {{ $labels.job }}).
+            The target has been down for 1+ minutes.
+            Check network connectivity, firewall rules, and whether the exporter
+            process is still running. See RUNBOOK.md#host-down.
+
+      - alert: PrometheusTargetMissing
+        expr: up == 0
+        for: 5m
+        labels:
+          severity: warning
+          team: sre
+        annotations:
+          summary: "Prometheus scrape target {{ $labels.instance }} missing for 5m"
+          description: >
+            Job {{ $labels.job }} target {{ $labels.instance }} has been
+            unreachable for 5+ minutes. Investigate exporter or network.
+
+  # ──────────────────────────────────────────────────────────────
+  #  Network Alerts
+  # ──────────────────────────────────────────────────────────────
+  - name: network_alerts
+    interval: 15s
+    rules:
+
+      - alert: HighNetworkErrors
+        expr: |
+          rate(node_network_receive_errs_total[5m]) +
+          rate(node_network_transmit_errs_total[5m]) > 10
+        for: 5m
+        labels:
+          severity: warning
+          team: sre
+          runbook: "https://github.com/your-org/monitoring-dashboard/blob/main/docs/RUNBOOK.md#high-network-errors"
+        annotations:
+          summary: "High network error rate on {{ $labels.instance }} ({{ $labels.device }})"
+          description: >
+            Interface {{ $labels.device }} on {{ $labels.instance }} is
+            experiencing {{ $value | printf "%.1f" }} errors/sec.
+            Run `ip -s link show {{ $labels.device }}` and check cable/NIC.
+            See RUNBOOK.md#high-network-errors.
+
+      - alert: HighNetworkPacketLoss
+        expr: |
+          rate(node_network_receive_drop_total[5m]) +
+          rate(node_network_transmit_drop_total[5m]) > 50
+        for: 5m
+        labels:
+          severity: warning
+          team: sre
+        annotations:
+          summary: "High packet drop rate on {{ $labels.instance }} ({{ $labels.device }})"
+          description: >
+            {{ $labels.device }} on {{ $labels.instance }} is dropping
+            {{ $value | printf "%.0f" }} packets/sec. Check for network
+            congestion or buffer overflows.
+
+      - alert: UnusuallyHighNetworkTraffic
+        expr: |
+          rate(node_network_receive_bytes_total[5m]) > 125000000  # ~1 Gbps
+        for: 5m
+        labels:
+          severity: warning
+          team: sre
+        annotations:
+          summary: "Very high inbound network traffic on {{ $labels.instance }}"
+          description: >
+            {{ $labels.instance }} is receiving traffic at
+            {{ $value | humanize }}B/s on {{ $labels.device }}.
+            Possible DDoS or large transfer. Investigate with `nethogs` or `iftop`.
+
+  # ──────────────────────────────────────────────────────────────
+  #  Service Health Alerts (from custom Python exporter)
+  # ──────────────────────────────────────────────────────────────
+  - name: service_health_alerts
+    interval: 30s
+    rules:
+
+      - alert: ServiceEndpointDown
+        expr: health_check_status == 0
+        for: 2m
+        labels:
+          severity: critical
+          team: sre
+          runbook: "https://github.com/your-org/monitoring-dashboard/blob/main/docs/RUNBOOK.md#service-endpoint-down"
+        annotations:
+          summary: "Service {{ $labels.service_name }} endpoint is DOWN"
+          description: >
+            Health check for {{ $labels.service_name }} at
+            {{ $labels.target_url }} has been failing for 2+ minutes.
+            HTTP status: {{ $labels.last_status_code }}.
+            See RUNBOOK.md#service-endpoint-down.
+
+      - alert: ServiceSlowResponse
+        expr: health_check_response_time_seconds > 3
+        for: 5m
+        labels:
+          severity: warning
+          team: sre
+        annotations:
+          summary: "Slow response from {{ $labels.service_name }}"
+          description: >
+            {{ $labels.service_name }} at {{ $labels.target_url }} is
+            responding in {{ $value | printf "%.2f" }}s (threshold: 3s).
+            Investigate application performance.
+
+  # ──────────────────────────────────────────────────────────────
+  #  System Load Alerts
+  # ──────────────────────────────────────────────────────────────
+  - name: load_alerts
+    interval: 30s
+    rules:
+
+      - alert: HighSystemLoad
+        expr: |
+          node_load15 / count without(cpu, mode) (
+            node_cpu_seconds_total{mode="idle"}
+          ) > 1.5
+        for: 10m
+        labels:
+          severity: warning
+          team: sre
+        annotations:
+          summary: "High 15-minute load average on {{ $labels.instance }}"
+          description: >
+            Load average (15m) normalized per CPU on {{ $labels.instance }}
+            is {{ $value | printf "%.2f" }} (threshold: 1.5).
+            Run `uptime` and `vmstat 1 5` to diagnose.

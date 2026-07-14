@@ -1,0 +1,36 @@
+2026-07-13T08:00:01.123Z [INFO] payment-service: Service started version=2.4.1 pid=1234
+2026-07-13T08:00:15.456Z [INFO] payment-service: Database connection pool initialized pool_size=20 host=pg-primary:5432
+2026-07-13T08:01:02.789Z [INFO] payment-service: Processing payment request user_id=1001 request_id=req-a1b2c3d4 endpoint=/api/v1/payment duration_ms=145
+2026-07-13T08:01:03.012Z [INFO] payment-service: Payment authorized successfully user_id=1001 amount=$49.99 request_id=req-a1b2c3d4
+2026-07-13T08:02:14.234Z [INFO] payment-service: Processing payment request user_id=2847 request_id=req-e5f6g7h8 endpoint=/api/v1/checkout duration_ms=89
+2026-07-13T08:02:14.890Z [INFO] payment-service: Payment authorized successfully user_id=2847 amount=$129.00 request_id=req-e5f6g7h8
+2026-07-13T08:03:30.111Z [WARN] payment-service: Payment processing slow user_id=9123 duration_ms=1243 threshold=1000ms request_id=req-i9j0k1l2
+2026-07-13T08:03:31.445Z [INFO] payment-service: Payment authorized successfully user_id=9123 amount=$299.50 request_id=req-i9j0k1l2
+2026-07-13T08:05:00.000Z [INFO] payment-service: Health check passed uptime=300s memory_used=42%
+2026-07-13T08:06:12.678Z [INFO] payment-service: Cache hit for product catalog request_id=req-m3n4o5p6 ttl=300s
+2026-07-13T08:07:45.890Z [WARN] payment-service: Retry attempt 2/3 for payment gateway user_id=4456 request_id=req-q7r8s9t0
+2026-07-13T08:07:46.234Z [INFO] payment-service: Payment authorized on retry user_id=4456 amount=$75.00 request_id=req-q7r8s9t0
+2026-07-13T08:10:00.000Z [INFO] payment-service: Health check passed uptime=600s memory_used=45%
+2026-07-13T08:14:22.334Z [ERROR] payment-service: Database connection failed — too many connections (1024/1024) request_id=req-a1b2c3d4 host=pg-primary:5432
+2026-07-13T08:14:22.445Z [ERROR] payment-service: Payment failed user_id=1001 request_id=req-a1b2c3d4 — database-error Connection refused
+2026-07-13T08:14:23.100Z [ERROR] payment-service: Internal server error processing checkout user_id=2847 request_id=req-e5f6g7h8
+2026-07-13T08:14:23.456Z [ERROR] payment-service: Internal server error processing checkout user_id=9123 request_id=req-i9j0k1l2
+2026-07-13T08:14:24.000Z [ERROR] payment-service: Deadlock detected on table orders — query timeout after 30000ms request_id=req-m3n4o5p6
+2026-07-13T08:14:24.123Z [ERROR] payment-service: Could not connect to database host=pg-replica:5432 — Connection refused
+2026-07-13T08:14:25.000Z [ERROR] payment-service: Payment webhook delivery failed to stripe.com — Connection timeout after 30s
+2026-07-13T08:14:25.500Z [WARN] payment-service: Circuit breaker opened for pg-primary:5432 — failover to replica
+2026-07-13T08:14:30.000Z [INFO] payment-service: Failover to pg-replica:5433 successful — resuming operations
+2026-07-13T08:14:35.000Z [INFO] payment-service: Processing payment request user_id=7789 request_id=req-q7r8s9t0 endpoint=/api/v1/payment duration_ms=201
+2026-07-13T08:14:36.000Z [INFO] payment-service: Payment authorized successfully user_id=7789 amount=$34.99 request_id=req-q7r8s9t0
+2026-07-13T08:15:00.000Z [INFO] payment-service: Health check passed uptime=900s memory_used=48%
+2026-07-13T08:20:00.000Z [INFO] payment-service: Processing payment request user_id=1001 request_id=req-new001 endpoint=/api/v1/payment duration_ms=112
+2026-07-13T08:20:00.500Z [INFO] payment-service: Payment authorized successfully user_id=1001 amount=$22.00 request_id=req-new001
+2026-07-13T08:21:00.000Z [WARN] payment-service: High memory usage detected heap_used=78% threshold=75%
+2026-07-13T08:22:00.000Z [WARN] payment-service: High memory usage detected heap_used=82% threshold=75%
+Jul 13 08:23:00 app-server-1 kernel: Out of memory: Killed process 5678 (java) score 921 or sacrifice child
+2026-07-13T08:23:01.000Z [CRITICAL] payment-service: Process killed by OOM killer — JVM heap exhausted heap_used=98%
+2026-07-13T08:23:05.000Z [INFO] payment-service: Service restarting after OOM kill — version=2.4.1
+2026-07-13T08:23:15.000Z [INFO] payment-service: Service started version=2.4.1 pid=5900
+2026-07-13T08:23:30.000Z [INFO] payment-service: Database connection pool initialized pool_size=20 host=pg-replica:5433
+2026-07-13T08:24:00.000Z [INFO] payment-service: Processing payment request user_id=2847 request_id=req-new002 duration_ms=98
+2026-07-13T08:24:00.400Z [INFO] payment-service: Payment authorized successfully user_id=2847 amount=$55.50 request_id=req-new002

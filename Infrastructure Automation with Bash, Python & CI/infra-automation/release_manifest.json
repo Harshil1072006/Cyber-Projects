@@ -1,0 +1,14 @@
+[
+  {
+    "environment": "staging",
+    "sha": "550a44d4e6e0ee6b8f5358b8a666dbf268098e0d",
+    "version": "0.0.0",
+    "status": "failed",
+    "timestamp": "2026-07-13T17:48:57.269219+00:00",
+    "pipeline_run": "local-20260713174857",
+    "triggered_by": "unknown",
+    "duration_sec": 0.0,
+    "notes": "Failed at stage: pre-checks",
+    "rollback_from": null
+  }
+]

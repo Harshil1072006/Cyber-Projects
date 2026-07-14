@@ -1,0 +1,65 @@
+FROM ubuntu:22.04
+
+LABEL description="Simulated target server for infra-automation pipeline demo"
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Install everything the bash scripts might need on a real server
+RUN apt-get update -qq && apt-get install -y --no-install-recommends \
+    bash \
+    curl \
+    wget \
+    git \
+    jq \
+    rsync \
+    tar \
+    gzip \
+    openssl \
+    sudo \
+    openssh-client \
+    openssh-server \
+    python3 \
+    python3-pip \
+    supervisor \
+    procps \
+    net-tools \
+    iputils-ping \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Python deps for the health-check server
+RUN pip3 install --no-cache-dir flask gunicorn requests
+
+# ── SSH setup ──────────────────────────────────────────────────────────────
+RUN mkdir -p /var/run/sshd && \
+    ssh-keygen -A && \
+    echo "PermitRootLogin yes" >> /etc/ssh/sshd_config && \
+    echo "PasswordAuthentication yes" >> /etc/ssh/sshd_config
+
+# ── Deploy user setup ──────────────────────────────────────────────────────
+RUN groupadd --system deploy && \
+    useradd --system --gid deploy --create-home --shell /bin/bash deploy && \
+    echo "deploy:deploy" | chpasswd && \
+    echo "deploy ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/deploy && \
+    chmod 440 /etc/sudoers.d/deploy
+
+# ── App directories ────────────────────────────────────────────────────────
+RUN mkdir -p /var/lib/app /var/backups/app /var/log/app && \
+    chown -R deploy:deploy /var/lib/app /var/backups/app /var/log/app
+
+# ── Sample application: a minimal Flask health server ─────────────────────
+COPY app.py /opt/app/app.py
+RUN chown -R deploy:deploy /opt/app
+
+# ── Supervisor config to manage the app ───────────────────────────────────
+COPY supervisord.conf /etc/supervisor/conf.d/app.conf
+
+# ── Startup script ─────────────────────────────────────────────────────────
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
+EXPOSE 8080 22
+
+HEALTHCHECK --interval=10s --timeout=5s --start-period=10s --retries=3 \
+    CMD curl -sf http://localhost:8080/health || exit 1
+
+ENTRYPOINT ["/entrypoint.sh"]

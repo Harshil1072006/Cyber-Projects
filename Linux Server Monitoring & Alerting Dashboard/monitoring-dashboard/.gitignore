@@ -1,0 +1,26 @@
+# Secrets — never commit these
+.env
+
+# Docker volumes (managed by Docker)
+prometheus_data/
+grafana_data/
+alertmanager_data/
+
+# Generated logs
+/var/log/monitoring/
+*.log
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+
+# macOS
+.DS_Store
+
+# Editor
+.idea/
+.vscode/
+*.swp

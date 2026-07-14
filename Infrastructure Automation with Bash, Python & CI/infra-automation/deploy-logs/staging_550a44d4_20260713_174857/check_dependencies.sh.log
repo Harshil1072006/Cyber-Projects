@@ -1,0 +1,7 @@
+COMMAND: bash C:\Cyber Project\Infrastructure Automation with Bash, Python & CI\infra-automation\scripts\bash\check_dependencies.sh --env staging
+EXIT:    1
+STDOUT:
+
+STDERR:
+<3>WSL (12899 - Relay) ERROR: CreateProcessCommon:818: execvpe(/bin/bash) failed: No such file or directory
+

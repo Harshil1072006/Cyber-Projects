@@ -1,0 +1,47 @@
+{
+  "name": "Error Rate Spike Alert",
+  "description": "Fires when error log count in any 5-minute window exceeds 20 events or spikes 3x vs the 1-hour baseline. Maps to the error-rate-spike tag in RUNBOOK.md.",
+  "rule_type_id": ".es-query",
+  "consumer": "logs",
+  "schedule": { "interval": "1m" },
+  "throttle": "15m",
+  "notify_when": "onActionGroupChange",
+  "params": {
+    "index": ["logs-*"],
+    "timeField": "@timestamp",
+    "esQuery": {
+      "query": {
+        "bool": {
+          "filter": [
+            { "range": { "@timestamp": { "gte": "now-5m" } } },
+            { "terms": { "log.level": ["error", "critical", "fatal"] } }
+          ]
+        }
+      }
+    },
+    "size": 0,
+    "threshold": [20],
+    "thresholdComparator": ">",
+    "timeWindowSize": 5,
+    "timeWindowUnit": "m"
+  },
+  "actions": [
+    {
+      "id": "slack-connector-id",
+      "group": "threshold met",
+      "params": {
+        "message": ":fire: *Error Rate Spike Detected*\n*Time:* {{date}}\n*Error Count (last 5m):* {{context.value}}\n*Threshold:* 20\n\nRun Kibana query: `log.level: error` filtered to last 5 minutes.\nSee RUNBOOK.md#error-rate-spike for remediation steps."
+      }
+    }
+  ],
+  "_meta": {
+    "note": "To activate this rule: POST to Kibana API /api/alerting/rule after setting up a Slack connector at /api/actions/connector. See docs/RUNBOOK.md#kibana-alert-setup for step-by-step instructions.",
+    "manual_setup_steps": [
+      "1. Open Kibana → Stack Management → Rules and Connectors",
+      "2. Create a Slack connector with your webhook URL",
+      "3. Create a new rule: type=Elasticsearch query, index=logs-*, query=log.level:error, threshold=20 per 5m",
+      "4. Add Slack action with the message template above",
+      "5. Enable the rule"
+    ]
+  }
+}

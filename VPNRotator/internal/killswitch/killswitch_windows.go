@@ -50,8 +50,7 @@ func (k *WindowsKillSwitch) Enable(openVpnExePath, vpnGateServerIP string) error
 
 // Disable removes the firewall rules added by Enable.
 func (k *WindowsKillSwitch) Disable() error {
-	cmd := fmt.Sprintf("netsh advfirewall firewall delete rule name=all | findstr /C:\"%s\"", k.rulePrefix)
-	// We'll just delete rules starting with the prefix
+	// Delete all rules with this prefix
 	deleteCmd := fmt.Sprintf("netsh advfirewall firewall delete rule name=\"%sBlockAll\"", k.rulePrefix)
 	_ = runCmd(deleteCmd)
 	

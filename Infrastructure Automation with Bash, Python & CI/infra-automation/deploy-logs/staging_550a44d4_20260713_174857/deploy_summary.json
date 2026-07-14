@@ -1,0 +1,17 @@
+{
+  "environment": "staging",
+  "sha": "550a44d4e6e0ee6b8f5358b8a666dbf268098e0d",
+  "version": "0.0.0",
+  "status": "failed",
+  "duration_sec": 0.31313633918762207,
+  "timestamp": "2026-07-13T17:48:57.578403+00:00",
+  "steps": [
+    {
+      "name": "check_dependencies.sh",
+      "success": false,
+      "exit_code": 1,
+      "duration_sec": 0.30567312240600586,
+      "skipped": false
+    }
+  ]
+}

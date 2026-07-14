@@ -1,0 +1,137 @@
+name: Deploy — Production (Manual Approval)
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version to deploy (e.g. 1.2.3)"
+        required: true
+      sha:
+        description: "Git SHA to deploy"
+        required: true
+      break_for_demo:
+        description: "Inject deliberate failure to demo rollback path?"
+        type: boolean
+        required: false
+        default: false
+
+permissions:
+  contents: read
+  actions:  write
+
+env:
+  ENVIRONMENT: production
+  PYTHON:      python3
+
+jobs:
+
+  # ── Deploy to production ──────────────────────────────────────────────────
+  deploy-production:
+    name: Deploy → Production
+    runs-on: ubuntu-22.04
+    # This environment must be configured in GitHub with a "Required reviewers" protection rule
+    environment:
+      name: production
+      url: http://localhost:8081/health
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.sha }}
+          fetch-depth: 0
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: |
+          pip install flask requests
+          sudo apt-get update -qq
+          sudo apt-get install -y curl jq
+
+      - name: Set up simulated production host
+        run: |
+          # In CI, simulate the target host locally
+          mkdir -p /var/lib/app /var/backups/app /var/log/app
+          sudo chmod 777 /var/lib/app /var/backups/app /var/log/app
+
+          # Start mock health server in background
+          python3 -c "
+          from http.server import HTTPServer, BaseHTTPRequestHandler
+          import json, threading, time
+
+          class H(BaseHTTPRequestHandler):
+              def do_GET(self):
+                  self.send_response(200)
+                  self.send_header('Content-Type', 'application/json')
+                  self.end_headers()
+                  self.wfile.write(json.dumps({'status': 'ok', 'env': 'production'}).encode())
+              def log_message(self, *a): pass
+
+          httpd = HTTPServer(('', 8081), H)
+          httpd.serve_forever()
+          " &
+          echo "Mock health server started"
+          sleep 2
+
+          # Verify it's up
+          curl -sf http://localhost:8081/health
+
+      - name: Configure environment
+        run: |
+          # Inject CI-specific overrides into production.env
+          sed -i "s|TARGET_HOST=.*|TARGET_HOST=localhost|" environments/production.env
+          # In a real setup, you would inject secrets here from GitHub Secrets:
+          # echo "SECRET_KEY=${{ secrets.PROD_SECRET_KEY }}" >> environments/production.env
+
+      - name: Deploy to production
+        id: deploy
+        run: |
+          DEPLOY_ARGS="--env production --sha ${{ github.event.inputs.sha }} --version ${{ github.event.inputs.version }}"
+
+          if [[ "${{ github.event.inputs.break_for_demo }}" == "true" ]]; then
+            echo "⚡ Injecting deliberate failure for rollback demo"
+            DEPLOY_ARGS="$DEPLOY_ARGS --break-for-demo"
+          fi
+
+          # Production deploy includes pre-deploy backup
+          python3 scripts/python/deploy.py $DEPLOY_ARGS
+        env:
+          APP_VERSION: ${{ github.event.inputs.version }}
+          GITHUB_SHA:  ${{ github.event.inputs.sha }}
+          GITHUB_RUN_ID: ${{ github.run_id }}
+          GITHUB_ACTOR: ${{ github.actor }}
+          # SECRET_KEY: ${{ secrets.PROD_SECRET_KEY }}
+
+      - name: Verify deployment
+        if: success()
+        run: |
+          echo "Verifying production deployment..."
+          python3 scripts/python/release_tracker.py status
+          python3 scripts/python/release_tracker.py current --env production
+
+      - name: Upload deploy logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: prod-deploy-logs-${{ github.event.inputs.sha }}
+          path: deploy-logs/
+          retention-days: 30
+
+      - name: Upload release manifest
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: prod-release-manifest-${{ github.event.inputs.sha }}
+          path: release_manifest.json
+          retention-days: 90
+
+      - name: Notify on failure
+        if: failure()
+        run: |
+          echo "::error title=Production Deploy Failed::Check deploy-logs artifact for details"
+          echo "::notice title=Rollback::deploy.py automatically invoked rollback.py on failure"
+          # In a real setup, this would ping Slack/PagerDuty:
+          # curl -X POST -H 'Content-type: application/json' --data '{"text":"🚨 Production deploy failed and rolled back"}' ${{ secrets.SLACK_WEBHOOK_URL }}

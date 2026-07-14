@@ -1,0 +1,190 @@
+# ─────────────────────────────────────────────────────────────────
+#  alertmanager.yml  —  Alertmanager routing & notification config
+#
+#  Setup instructions:
+#    1. Set SLACK_WEBHOOK_URL env var OR replace the placeholder below
+#    2. Set SMTP_* env vars for email notifications
+#    3. docker compose restart alertmanager after changes
+#
+#  Routing logic:
+#    critical severity  → #alerts-critical Slack + email on-call list
+#    warning severity   → #alerts-warning Slack only
+#    everything else    → default null receiver (silenced)
+#
+#  Inhibition rules prevent alert storms:
+#    If HostDown fires, suppress memory/cpu/disk alerts for same instance
+# ─────────────────────────────────────────────────────────────────
+
+global:
+  # How long to wait before sending a notification about new alerts
+  resolve_timeout: 5m
+
+  # SMTP configuration (for email)
+  smtp_smarthost: "smtp.gmail.com:587"
+  smtp_from: "alertmanager@your-domain.com"
+  smtp_auth_username: "YOUR_EMAIL@gmail.com"
+  smtp_auth_password: "YOUR_APP_PASSWORD"   # Use Gmail App Password
+  smtp_require_tls: true
+
+  # Slack defaults
+  slack_api_url: "https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK"
+
+# ── Templates ─────────────────────────────────────────────────────
+# templates:
+#   - '/etc/alertmanager/templates/*.tmpl'
+
+# ── Routing tree ──────────────────────────────────────────────────
+route:
+  # Default receiver when no child route matches
+  receiver: "null"
+
+  # Group alerts by these labels to batch related notifications
+  group_by: ["alertname", "instance", "severity"]
+
+  # Wait this long after first alert before sending, to batch more
+  group_wait: 30s
+
+  # Wait this long before sending another notification for same group
+  group_interval: 5m
+
+  # Wait this long before re-notifying about an ongoing alert
+  repeat_interval: 4h
+
+  routes:
+    # ── Critical → Slack #alerts-critical + email ────────────────
+    - match:
+        severity: critical
+      receiver: "slack-critical-and-email"
+      group_wait: 10s          # Urgent: shorter wait
+      group_interval: 2m
+      repeat_interval: 1h      # Re-notify every hour while firing
+      continue: false          # Don't fall through to parent
+
+    # ── Warning → Slack #alerts-warning only ─────────────────────
+    - match:
+        severity: warning
+      receiver: "slack-warning"
+      group_wait: 60s
+      group_interval: 10m
+      repeat_interval: 6h
+      continue: false
+
+    # ── Watchdog (always-firing heartbeat) ───────────────────────
+    # Route the Watchdog alert to a dead-man's-switch receiver.
+    # Leave receiver as "null" if you don't have a DMS configured.
+    - match:
+        alertname: Watchdog
+      receiver: "null"
+
+# ── Receivers ─────────────────────────────────────────────────────
+receivers:
+
+  # Silently drop alerts (used for Watchdog / unmatched)
+  - name: "null"
+
+  # Critical: Slack (high-priority channel) + Email
+  - name: "slack-critical-and-email"
+    slack_configs:
+      - api_url: "https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK"
+        channel: "#alerts-critical"
+        send_resolved: true
+        icon_emoji: ":fire:"
+        username: "AlertManager"
+        title: >-
+          [{{ .Status | toUpper }}{{ if eq .Status "firing" }} :fire:{{ else }} :white_check_mark:{{ end }}]
+          {{ .GroupLabels.alertname }} on {{ .GroupLabels.instance }}
+        text: >-
+          {{ range .Alerts }}
+          *Alert:* {{ .Annotations.summary }}
+          *Severity:* `{{ .Labels.severity }}`
+          *Instance:* `{{ .Labels.instance }}`
+          *Details:* {{ .Annotations.description }}
+          *Runbook:* {{ .Labels.runbook }}
+          *Started:* {{ .StartsAt | since }}
+          {{ end }}
+        actions:
+          - type: button
+            text: "View in Prometheus"
+            url: "http://localhost:9090/alerts"
+          - type: button
+            text: "View in Grafana"
+            url: "http://localhost:3000"
+
+    email_configs:
+      - to: "oncall-team@your-domain.com"
+        send_resolved: true
+        headers:
+          Subject: >-
+            [{{ .Status | toUpper }}] {{ .GroupLabels.alertname }} —
+            {{ .GroupLabels.instance }}
+        html: |
+          <h2>🔥 Alert: {{ .GroupLabels.alertname }}</h2>
+          {{ range .Alerts }}
+          <p><strong>Summary:</strong> {{ .Annotations.summary }}</p>
+          <p><strong>Severity:</strong> {{ .Labels.severity }}</p>
+          <p><strong>Instance:</strong> {{ .Labels.instance }}</p>
+          <p><strong>Description:</strong> {{ .Annotations.description }}</p>
+          <p><strong>Started:</strong> {{ .StartsAt }}</p>
+          <hr>
+          {{ end }}
+          <p>
+            <a href="http://localhost:9090/alerts">View in Prometheus</a> |
+            <a href="http://localhost:3000">View in Grafana</a>
+          </p>
+
+    # Webhook for custom integrations (PagerDuty, custom scripts, etc.)
+    webhook_configs:
+      - url: "http://localhost:9201/alert-webhook"  # optional custom endpoint
+        send_resolved: true
+
+  # Warning: Slack only (lower-priority channel)
+  - name: "slack-warning"
+    slack_configs:
+      - api_url: "https://hooks.slack.com/services/YOUR/SLACK/WEBHOOK"
+        channel: "#alerts-warning"
+        send_resolved: true
+        icon_emoji: ":warning:"
+        username: "AlertManager"
+        title: >-
+          [{{ .Status | toUpper }}] {{ .GroupLabels.alertname }}
+          on {{ .GroupLabels.instance }}
+        text: >-
+          {{ range .Alerts }}
+          *Alert:* {{ .Annotations.summary }}
+          *Details:* {{ .Annotations.description }}
+          {{ end }}
+
+# ── Inhibition rules ──────────────────────────────────────────────
+# Prevent alert storms: if a host is down, suppress all other
+# alerts for that same instance (since they're all caused by the outage).
+inhibit_rules:
+
+  - source_match:
+      alertname: "HostDown"
+      severity: "critical"
+    target_match_re:
+      alertname: "HighCPUUsage|HighMemoryUsage|LowDiskSpace|HighNetworkErrors|ServiceEndpointDown"
+    equal: ["instance"]   # Only inhibit alerts for the same instance
+
+  # If CriticalCPUUsage fires, inhibit the HighCPUUsage warning
+  - source_match:
+      alertname: "CriticalCPUUsage"
+    target_match:
+      alertname: "HighCPUUsage"
+    equal: ["instance"]
+
+  # If critical memory fires, inhibit the warning-level memory alert
+  - source_match:
+      alertname: "HighMemoryUsage"
+      severity: "critical"
+    target_match:
+      alertname: "WarningMemoryUsage"
+    equal: ["instance"]
+
+  # If LowDiskSpace (critical) fires, inhibit DiskSpaceWarning
+  - source_match:
+      alertname: "LowDiskSpace"
+      severity: "critical"
+    target_match:
+      alertname: "DiskSpaceWarning"
+    equal: ["instance", "mountpoint"]

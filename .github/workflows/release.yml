@@ -11,7 +11,7 @@ on:
 jobs:
   build-windows:
     name: Build Windows EXE
-    runs-on: windows-latest
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
@@ -21,20 +21,17 @@ jobs:
         with:
           go-version: '1.22'
 
-      - name: Install Fyne CLI
-        run: go install fyne.io/fyne/v2/cmd/fyne@latest
+      - name: Install Fyne Cross
+        run: go install github.com/fyne-io/fyne-cross@latest
 
       - name: Build Windows Executable
-        working-directory: ./VPNRotator
-        run: |
-          go mod download
-          fyne package -os windows
+        run: fyne-cross windows -arch=amd64 -dir=VPNRotator
           
       - name: Upload Windows Binary
         uses: actions/upload-artifact@v4
         with:
           name: VPNRotator-Windows
-          path: ./VPNRotator/VPNRotator.exe
+          path: ./VPNRotator/fyne-cross/bin/windows-amd64/VPNRotator.exe
 
   build-android:
     name: Build Android APK
@@ -48,31 +45,14 @@ jobs:
         with:
           go-version: '1.22'
 
-      - name: Setup Java
-        uses: actions/setup-java@v4
-        with:
-          distribution: 'temurin'
-          java-version: '17'
-
-      - name: Setup Android SDK
-        uses: android-actions/setup-android@v3
-
-      - name: Install System Dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y gcc libgl1-mesa-dev xorg-dev
-
-      - name: Install Fyne CLI
-        run: go install fyne.io/fyne/v2/cmd/fyne@latest
+      - name: Install Fyne Cross
+        run: go install github.com/fyne-io/fyne-cross@latest
 
       - name: Build Android APK
-        working-directory: ./VPNRotator
-        run: |
-          go mod download
-          fyne package -os android -appID com.harshil.vpnrotator
+        run: fyne-cross android -appID com.harshil.vpnrotator -dir=VPNRotator
 
       - name: Upload Android APK
         uses: actions/upload-artifact@v4
         with:
           name: VPNRotator-Android
-          path: ./VPNRotator/VPNRotator.apk
+          path: ./VPNRotator/fyne-cross/bin/android/VPNRotator.apk
