@@ -1,0 +1,9 @@
+FROM python:3.11-slim
+
+WORKDIR /app
+COPY scripts/ /app/scripts/
+
+# No external dependencies currently for enricher as it just uses standard library
+# RUN pip install -r /app/scripts/requirements.txt
+
+CMD ["python", "scripts/log_enricher.py"]
