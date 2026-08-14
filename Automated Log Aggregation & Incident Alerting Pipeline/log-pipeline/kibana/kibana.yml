@@ -4,8 +4,8 @@ server.port: 5601
 
 elasticsearch.hosts: ["http://elasticsearch:9200"]
 
-# Disable security for local dev
-xpack.security.enabled: false
+# NOTE: xpack.security.enabled is set via environment variable in docker-compose.yml
+# Do NOT set it here — Kibana 8.x will FATAL if this key exists in kibana.yml
 
 # Required for Kibana alerting / saved objects encryption
 xpack.encryptedSavedObjects.encryptionKey: "a7a6311933d3503b89bc2dbc36572c33a"
